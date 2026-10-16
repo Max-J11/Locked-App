@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">Locked</string>
+
+    <!-- Accessibility service -->
+    <string name="accessibility_label">Locked</string>
+    <string name="accessibility_description">Locked uses this to notice when an app you\'ve chosen to lock is opened, and gently sends you back to the home screen. It only looks at which app is on screen. Everything stays on this phone. Nothing is sent anywhere.</string>
+
+    <!-- Block overlay -->
+    <string name="overlay_title">Taking a break</string>
+    <string name="overlay_message">YouTube is locked right now.</string>
+    <string name="overlay_ok">OK</string>
+
+    <!-- Main screen -->
+    <string name="service_on">Blocker is on</string>
+    <string name="service_off">Blocker is off</string>
+    <string name="open_accessibility_settings">Open accessibility settings</string>
 </resources>
