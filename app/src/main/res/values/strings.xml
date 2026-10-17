@@ -7,11 +7,26 @@
 
     <!-- Block overlay -->
     <string name="overlay_title">Taking a break</string>
-    <string name="overlay_message">YouTube is locked right now.</string>
+    <string name="overlay_message">%1$s is paused right now.</string>
+    <string name="overlay_fallback_app_name">This app</string>
     <string name="overlay_ok">OK</string>
 
-    <!-- Main screen -->
+    <!-- Home screen -->
     <string name="service_on">Blocker is on</string>
     <string name="service_off">Blocker is off</string>
     <string name="open_accessibility_settings">Open accessibility settings</string>
+    <string name="status_locked">Locked</string>
+    <string name="status_unlocked">Unlocked</string>
+    <plurals name="apps_selected">
+        <item quantity="one">%d app chosen</item>
+        <item quantity="other">%d apps chosen</item>
+    </plurals>
+    <string name="choose_apps">Choose apps</string>
+    <string name="debug_lock">Lock (debug)</string>
+    <string name="debug_unlock">Unlock (debug)</string>
+
+    <!-- App picker -->
+    <string name="app_picker_title">Choose apps</string>
+    <string name="app_picker_search">Search apps</string>
+    <string name="back">Back</string>
 </resources>

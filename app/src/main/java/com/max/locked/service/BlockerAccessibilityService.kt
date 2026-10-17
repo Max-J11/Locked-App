@@ -5,18 +5,24 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityWindowInfo
+import com.max.locked.R
+import com.max.locked.data.BrickRepository
+import com.max.locked.data.Policy
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
- * Watches which app is in the foreground and sends the user home if it's blocked.
- *
- * Milestone 2: the blocked package is hard-coded. Milestone 3 replaces it with the
- * in-memory Policy StateFlow from BrickRepository.
+ * Watches which app is in the foreground and sends the user home if the current [Policy] blocks it.
+ * Reads the in-memory StateFlow only; never touches Room per event.
  *
  * Known One UI quirk: if a blocked app is opened in pop-up view, HOME minimizes it to a
  * floating icon (systemui freeform_container_pointer_control_view) instead of closing it.
  * The icon has no dismiss action; tapping it reopens the app, which gets blocked again.
  */
+@AndroidEntryPoint
 class BlockerAccessibilityService : AccessibilityService() {
+
+    @Inject lateinit var repository: BrickRepository
 
     private lateinit var overlay: BlockOverlay
 
@@ -44,7 +50,7 @@ class BlockerAccessibilityService : AccessibilityService() {
             lastForegroundPackage = pkg
         }
 
-        if (pkg != BLOCKED_PACKAGE) return
+        if (!repository.policy.value.isBlocked(pkg, System.currentTimeMillis())) return
 
         // Blocked apps can send a late state event after we've already sent the user home.
         // Pressing HOME again on One UI jumps to the main home page, so confirm the app
@@ -77,7 +83,13 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         Log.d(TAG, "blocked $pkg")
         performGlobalAction(GLOBAL_ACTION_HOME)
-        overlay.show()
+        overlay.show(appLabel(pkg))
+    }
+
+    private fun appLabel(pkg: String): String = try {
+        packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
+    } catch (e: Exception) {
+        getString(R.string.overlay_fallback_app_name)
     }
 
     override fun onInterrupt() {
@@ -93,8 +105,5 @@ class BlockerAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "Locked"
         private const val DEBOUNCE_MS = 750L
-
-        // Temporary: replaced by the Policy in Milestone 3.
-        const val BLOCKED_PACKAGE = "com.google.android.youtube"
     }
 }

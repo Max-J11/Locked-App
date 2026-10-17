@@ -30,10 +30,12 @@ class BlockOverlay(private val service: AccessibilityService) {
 
     private var view: View? = null
 
-    fun show() {
+    fun show(appName: String) {
         handler.removeCallbacks(autoHide)
+        view?.findViewWithTag<TextView>(MESSAGE_TAG)?.text =
+            service.getString(R.string.overlay_message, appName)
         if (view == null) {
-            val v = buildView()
+            val v = buildView(appName)
             try {
                 windowManager.addView(v, layoutParams())
                 view = v
@@ -67,7 +69,7 @@ class BlockOverlay(private val service: AccessibilityService) {
         PixelFormat.TRANSLUCENT,
     )
 
-    private fun buildView(): View {
+    private fun buildView(appName: String): View {
         val ctx = service
         fun dp(value: Int) = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), ctx.resources.displayMetrics,
@@ -80,7 +82,8 @@ class BlockOverlay(private val service: AccessibilityService) {
             gravity = Gravity.CENTER
         }
         val message = TextView(ctx).apply {
-            setText(R.string.overlay_message)
+            text = ctx.getString(R.string.overlay_message, appName)
+            tag = MESSAGE_TAG
             setTextColor(Color.argb(220, 255, 255, 255))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             gravity = Gravity.CENTER
@@ -118,5 +121,6 @@ class BlockOverlay(private val service: AccessibilityService) {
     private companion object {
         const val TAG = "Locked"
         const val AUTO_HIDE_MS = 3_000L
+        const val MESSAGE_TAG = "overlay_message"
     }
 }

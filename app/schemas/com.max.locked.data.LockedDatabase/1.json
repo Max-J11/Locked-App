@@ -1,0 +1,157 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "f9b4facd387980542e09042b1e49554f",
+    "entities": [
+      {
+        "tableName": "mode",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `blockNotifications` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blockNotifications",
+            "columnName": "blockNotifications",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "mode_app",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`modeId` INTEGER NOT NULL, `packageName` TEXT NOT NULL, PRIMARY KEY(`modeId`, `packageName`), FOREIGN KEY(`modeId`) REFERENCES `mode`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "modeId",
+            "columnName": "modeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageName",
+            "columnName": "packageName",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "modeId",
+            "packageName"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_mode_app_modeId",
+            "unique": false,
+            "columnNames": [
+              "modeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_mode_app_modeId` ON `${TABLE_NAME}` (`modeId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "mode",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "modeId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "brick_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `isBricked` INTEGER NOT NULL, `activeModeId` INTEGER, `startedAt` INTEGER, `endsAt` INTEGER, `source` TEXT, `cooldownEndsAt` INTEGER, `passPackage` TEXT, `passEndsAt` INTEGER, `passesUsed` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isBricked",
+            "columnName": "isBricked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activeModeId",
+            "columnName": "activeModeId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "startedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "endsAt",
+            "columnName": "endsAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cooldownEndsAt",
+            "columnName": "cooldownEndsAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "passPackage",
+            "columnName": "passPackage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "passEndsAt",
+            "columnName": "passEndsAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "passesUsed",
+            "columnName": "passesUsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f9b4facd387980542e09042b1e49554f')"
+    ]
+  }
+}
