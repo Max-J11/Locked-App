@@ -25,16 +25,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.max.locked.R
@@ -84,10 +80,7 @@ fun AppPickerScreen(
 
 @Composable
 private fun AppRow(app: AppItem, onToggle: (Boolean) -> Unit) {
-    val pm = LocalContext.current.packageManager
-    val icon = remember(app.packageName) {
-        runCatching { pm.getApplicationIcon(app.packageName).toBitmap(96, 96).asImageBitmap() }.getOrNull()
-    }
+    val icon = app.icon
     Row(
         modifier = Modifier
             .fillMaxWidth()

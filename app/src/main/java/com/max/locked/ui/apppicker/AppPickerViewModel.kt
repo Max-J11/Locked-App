@@ -3,6 +3,9 @@ package com.max.locked.ui.apppicker
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.max.locked.data.BrickRepository
@@ -21,7 +24,15 @@ import javax.inject.Inject
 data class AppItem(
     val packageName: String,
     val label: String,
+    val icon: ImageBitmap?,
     val selected: Boolean,
+)
+
+/** Loaded once per screen visit, off the main thread. */
+private class InstalledApp(
+    val packageName: String,
+    val label: String,
+    val icon: ImageBitmap?,
 )
 
 data class AppPickerUiState(
@@ -36,17 +47,18 @@ class AppPickerViewModel @Inject constructor(
     private val repository: BrickRepository,
 ) : ViewModel() {
 
-    private val installed = MutableStateFlow<List<Pair<String, String>>?>(null)
+    private val installed = MutableStateFlow<List<InstalledApp>?>(null)
     private val query = MutableStateFlow("")
 
     val uiState: StateFlow<AppPickerUiState> =
         combine(installed, query, repository.selectedApps) { apps, q, selected ->
+            val needle = q.trim()
             AppPickerUiState(
                 loading = apps == null,
                 query = q,
                 apps = apps.orEmpty()
-                    .filter { (_, label) -> q.isBlank() || label.contains(q.trim(), ignoreCase = true) }
-                    .map { (pkg, label) -> AppItem(pkg, label, pkg in selected) },
+                    .filter { needle.isEmpty() || it.label.contains(needle, ignoreCase = true) }
+                    .map { AppItem(it.packageName, it.label, it.icon, it.packageName in selected) },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPickerUiState())
 
@@ -66,15 +78,28 @@ class AppPickerViewModel @Inject constructor(
         }
     }
 
-    /** Apps with a launcher icon, minus the never-block list, sorted by name. */
-    private fun loadLaunchableApps(): List<Pair<String, String>> {
+    /** Apps with a launcher icon, minus the never-block list, sorted by name, icons pre-rendered. */
+    private fun loadLaunchableApps(): List<InstalledApp> {
         val pm = context.packageManager
         val neverBlock = repository.neverBlockPackages()
+        val iconPx = (ICON_DP * context.resources.displayMetrics.density).toInt()
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         return pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
-            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
-            .distinctBy { it.first }
-            .filter { it.first !in neverBlock }
-            .sortedBy { it.second.lowercase() }
+            .distinctBy { it.activityInfo.packageName }
+            .filter { it.activityInfo.packageName !in neverBlock }
+            .map { info ->
+                InstalledApp(
+                    packageName = info.activityInfo.packageName,
+                    label = info.loadLabel(pm).toString(),
+                    icon = runCatching {
+                        info.loadIcon(pm).toBitmap(iconPx, iconPx).asImageBitmap()
+                    }.getOrNull(),
+                )
+            }
+            .sortedBy { it.label.lowercase() }
+    }
+
+    private companion object {
+        const val ICON_DP = 36
     }
 }
