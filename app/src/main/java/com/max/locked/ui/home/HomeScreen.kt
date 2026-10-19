@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -17,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,6 +27,7 @@ fun HomeScreen(
     serviceEnabled: Boolean,
     onOpenAccessibilitySettings: () -> Unit,
     onChooseApps: () -> Unit,
+    onPucks: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -43,17 +44,29 @@ fun HomeScreen(
         )
         Spacer(Modifier.height(8.dp))
         Text(
+            text = stringResource(
+                when {
+                    state.puckCount == 0 -> R.string.home_hint_pair
+                    state.isLocked -> R.string.home_hint_unlock
+                    else -> R.string.home_hint_lock
+                },
+            ),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(24.dp))
+        Text(
             text = pluralStringResource(R.plurals.apps_selected, state.appCount, state.appCount),
             style = MaterialTheme.typography.bodyLarge,
         )
-        TextButton(onClick = onChooseApps) {
-            Text(stringResource(R.string.choose_apps))
-        }
+        TextButton(onClick = onChooseApps) { Text(stringResource(R.string.choose_apps)) }
 
-        Spacer(Modifier.height(24.dp))
-        Button(onClick = viewModel::toggleLock) {
-            Text(stringResource(if (state.isLocked) R.string.debug_unlock else R.string.debug_lock))
-        }
+        Text(
+            text = pluralStringResource(R.plurals.pucks_paired, state.puckCount, state.puckCount),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        TextButton(onClick = onPucks) { Text(stringResource(R.string.manage_pucks)) }
 
         Spacer(Modifier.height(40.dp))
         Text(

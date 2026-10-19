@@ -30,6 +30,23 @@ data class ModeAppEntity(
     val packageName: String,
 )
 
+/**
+ * A paired puck. Matched on tag UID AND the SHA-256 of the secret written to it.
+ * The secret itself is never stored on the phone.
+ */
+@Entity(
+    tableName = "paired_key",
+    indices = [Index(value = ["tagUid"], unique = true)],
+)
+data class PairedKeyEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val tagUid: String,
+    val secretHash: String,
+    val modeId: Long,
+    val createdAt: Long,
+)
+
 /** Single row (id = 0) holding the current lock. All columns from CLAUDE.md, some unused until later. */
 @Entity(tableName = "brick_state")
 data class BrickStateEntity(

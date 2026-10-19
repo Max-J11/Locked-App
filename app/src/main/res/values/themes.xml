@@ -2,4 +2,13 @@
 <resources>
 
     <style name="Theme.Locked" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Invisible activity for puck taps: no UI, no animation, just a buzz and a toast. -->
+    <style name="Theme.Locked.Tap" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

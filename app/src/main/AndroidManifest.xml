@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Normal permission, granted at install with no prompt. -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="true" />
+
     <!-- Package visibility (not a permission): lets the app picker list launcher apps and
          lets NeverBlockList find the default home, clock and settings apps. -->
     <queries>
@@ -42,6 +48,24 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Everyday puck taps. Exported so the NFC system can deliver tags to it; it verifies
+             the tag's UID and secret before doing anything. -->
+        <activity
+            android:name=".nfc.TapActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Locked.Tap">
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:host="key"
+                    android:scheme="brickdiy" />
             </intent-filter>
         </activity>
 

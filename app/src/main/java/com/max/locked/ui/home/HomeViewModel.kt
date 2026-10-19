@@ -8,32 +8,25 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
     val isLocked: Boolean = false,
     val appCount: Int = 0,
+    val puckCount: Int = 0,
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: BrickRepository,
+    repository: BrickRepository,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> =
-        combine(repository.policy, repository.selectedApps) { policy, apps ->
-            HomeUiState(isLocked = policy.isActive(System.currentTimeMillis()), appCount = apps.size)
+        combine(repository.policy, repository.selectedApps, repository.pairedKeys) { policy, apps, keys ->
+            HomeUiState(
+                isLocked = policy.isActive(System.currentTimeMillis()),
+                appCount = apps.size,
+                puckCount = keys.size,
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
-
-    /** Debug stand-in for the puck. Replaced by TapActivity in Milestone 4. */
-    fun toggleLock() {
-        viewModelScope.launch {
-            if (repository.policy.value.isActive(System.currentTimeMillis())) {
-                repository.unlock(source = "debug_button")
-            } else {
-                repository.lock(source = "debug_button")
-            }
-        }
-    }
 }

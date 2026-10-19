@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,6 +33,10 @@ class BrickRepository @Inject constructor(
     private val modeDao = db.modeDao()
     private val modeAppDao = db.modeAppDao()
     private val stateDao = db.brickStateDao()
+    private val pairedKeyDao = db.pairedKeyDao()
+
+    /** Serializes lock/unlock so two quick taps can't race. */
+    private val stateMutex = Mutex()
 
     init {
         // Make sure the default mode and the single state row exist (first launch, or after a
@@ -64,21 +70,45 @@ class BrickRepository @Inject constructor(
 
     fun neverBlockPackages(): Set<String> = neverBlockList.packages()
 
-    suspend fun lock(source: String) {
+    // --- Lock state -----------------------------------------------------------------------
+
+    suspend fun lock(source: String, modeId: Long = DEFAULT_MODE_ID) = stateMutex.withLock {
+        lockLocked(source, modeId)
+    }
+
+    suspend fun unlock(source: String) = stateMutex.withLock {
+        unlockLocked(source)
+    }
+
+    /**
+     * Puck tap: lock with the key's mode if unlocked, otherwise unlock.
+     * Reads stored state rather than [policy], because a tap can cold-start the process before
+     * the StateFlow has its first value. Returns true if now locked.
+     */
+    suspend fun toggleFromKey(key: PairedKeyEntity): Boolean = stateMutex.withLock {
+        val now = System.currentTimeMillis()
+        val lockedNow = activePolicy(now, stateDao.get()?.toLockState(), emptySet(), emptySet())
+            .isActive(now)
+        val source = "puck:${key.id}"
+        if (lockedNow) unlockLocked(source) else lockLocked(source, key.modeId)
+        !lockedNow
+    }
+
+    private suspend fun lockLocked(source: String, modeId: Long) {
         val current = stateDao.get() ?: BrickStateEntity()
         stateDao.upsert(
             current.copy(
                 isBricked = true,
-                activeModeId = DEFAULT_MODE_ID,
+                activeModeId = modeId,
                 startedAt = System.currentTimeMillis(),
                 endsAt = null,
                 source = source,
             ),
         )
-        Log.d(TAG, "locked (source=$source)")
+        Log.d(TAG, "locked (source=$source, mode=$modeId)")
     }
 
-    suspend fun unlock(source: String) {
+    private suspend fun unlockLocked(source: String) {
         val current = stateDao.get() ?: BrickStateEntity()
         stateDao.upsert(
             current.copy(
@@ -91,6 +121,39 @@ class BrickRepository @Inject constructor(
         )
         Log.d(TAG, "unlocked (source=$source)")
     }
+
+    // --- Pucks ----------------------------------------------------------------------------
+
+    val pairedKeys: Flow<List<PairedKeyEntity>> = pairedKeyDao.observeAll()
+
+    suspend fun findKeyByUid(tagUid: String): PairedKeyEntity? = pairedKeyDao.findByUid(tagUid)
+
+    /** Saves a newly paired puck. Re-pairing a known tag replaces its secret and name. */
+    suspend fun savePairedKey(name: String, tagUid: String, secretHash: String) {
+        val existing = pairedKeyDao.findByUid(tagUid)
+        val key = existing?.copy(name = name, secretHash = secretHash)
+            ?: PairedKeyEntity(
+                name = name,
+                tagUid = tagUid,
+                secretHash = secretHash,
+                modeId = DEFAULT_MODE_ID,
+                createdAt = System.currentTimeMillis(),
+            )
+        pairedKeyDao.upsert(key)
+        Log.d(TAG, if (existing != null) "re-paired puck ${existing.id}" else "paired new puck")
+    }
+
+    /** Pucks can't be deleted while locked (settings only get stricter). Returns false if refused. */
+    suspend fun deletePairedKey(id: Long): Boolean {
+        if (policy.value.isActive(System.currentTimeMillis())) {
+            Log.d(TAG, "refused to delete puck $id while locked")
+            return false
+        }
+        pairedKeyDao.delete(id)
+        return true
+    }
+
+    // --- Apps -----------------------------------------------------------------------------
 
     suspend fun addApp(packageName: String) {
         modeAppDao.insert(ModeAppEntity(DEFAULT_MODE_ID, packageName))

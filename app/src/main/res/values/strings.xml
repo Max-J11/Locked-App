@@ -22,8 +22,49 @@
         <item quantity="other">%d apps chosen</item>
     </plurals>
     <string name="choose_apps">Choose apps</string>
-    <string name="debug_lock">Lock (debug)</string>
-    <string name="debug_unlock">Unlock (debug)</string>
+    <string name="home_hint_pair">Pair a puck to start.</string>
+    <string name="home_hint_lock">Tap your puck to lock.</string>
+    <string name="home_hint_unlock">Tap your puck to unlock.</string>
+    <plurals name="pucks_paired">
+        <item quantity="one">%d puck paired</item>
+        <item quantity="other">%d pucks paired</item>
+    </plurals>
+    <string name="manage_pucks">Pucks</string>
+
+    <!-- Pucks -->
+    <string name="pucks_title">Pucks</string>
+    <string name="pucks_empty">No pucks yet.</string>
+    <string name="pucks_pair_new">Pair a new puck</string>
+    <string name="pucks_remove">Remove</string>
+    <string name="pucks_remove_title">Remove %1$s?</string>
+    <string name="pucks_remove_body">This puck won\'t lock or unlock anything after it\'s removed. You can pair it again any time.</string>
+    <string name="pucks_locked_note">Pucks can be removed once you\'re unlocked.</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Pairing -->
+    <string name="pairing_title">Pair a puck</string>
+    <string name="pairing_name_prompt">Give this puck a name.</string>
+    <string name="pairing_name_label">Name</string>
+    <string name="pairing_next">Next</string>
+    <string name="pairing_hold_tag">Hold the puck to the back of your phone and keep it still.</string>
+    <string name="pairing_tap_again">Almost there. Move the puck away, then hold it to the phone once more.</string>
+    <string name="pairing_writing">Writing… keep holding.</string>
+    <string name="pairing_done">%1$s is paired.</string>
+    <string name="pairing_finish">Done</string>
+    <string name="pairing_try_again">Try again</string>
+    <string name="pairing_no_nfc">This phone doesn\'t have NFC.</string>
+    <string name="pairing_nfc_off">NFC is off. Turn it on to pair a puck.</string>
+    <string name="pairing_open_nfc_settings">Open NFC settings</string>
+    <string name="pairing_error_not_supported">This tag can\'t be used. An NTAG213 or NTAG215 tag works best.</string>
+    <string name="pairing_error_read_only">This tag is read-only, so it can\'t be paired.</string>
+    <string name="pairing_error_too_small">This tag doesn\'t have enough room. An NTAG213 or larger works.</string>
+    <string name="pairing_error_tag_lost">The puck moved away too soon. Hold it still and try again.</string>
+    <string name="pairing_error_io">That didn\'t quite work. Try again.</string>
+
+    <!-- Puck taps -->
+    <string name="tap_locked">Locked</string>
+    <string name="tap_unlocked">Unlocked</string>
+    <string name="tap_not_paired">Not a paired puck.</string>
 
     <!-- App picker -->
     <string name="app_picker_title">Choose apps</string>

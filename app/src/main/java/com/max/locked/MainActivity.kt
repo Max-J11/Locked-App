@@ -19,6 +19,8 @@ import androidx.navigation.compose.rememberNavController
 import com.max.locked.service.BlockerAccessibilityService
 import com.max.locked.ui.apppicker.AppPickerScreen
 import com.max.locked.ui.home.HomeScreen
+import com.max.locked.ui.pairing.PairingScreen
+import com.max.locked.ui.pucks.PucksScreen
 import com.max.locked.ui.theme.LockedTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,12 +44,22 @@ class MainActivity : ComponentActivity() {
                                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                                 },
                                 onChooseApps = { nav.navigate(ROUTE_APPS) },
+                                onPucks = { nav.navigate(ROUTE_PUCKS) },
                                 modifier = Modifier.padding(padding),
                             )
                         }
                     }
                     composable(ROUTE_APPS) {
                         AppPickerScreen(onBack = { nav.popBackStack() })
+                    }
+                    composable(ROUTE_PUCKS) {
+                        PucksScreen(
+                            onBack = { nav.popBackStack() },
+                            onPair = { nav.navigate(ROUTE_PAIR) },
+                        )
+                    }
+                    composable(ROUTE_PAIR) {
+                        PairingScreen(onDone = { nav.popBackStack() })
                     }
                 }
             }
@@ -71,5 +83,7 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val ROUTE_HOME = "home"
         const val ROUTE_APPS = "apps"
+        const val ROUTE_PUCKS = "pucks"
+        const val ROUTE_PAIR = "pair"
     }
 }
