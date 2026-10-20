@@ -81,6 +81,18 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_config" />
         </service>
+
+        <!-- Hides notifications from blocked apps while locked. The permission attribute only
+             limits who may bind to it (the system); it isn't a permission we request. -->
+        <service
+            android:name=".service.NotificationBlockerService"
+            android:exported="false"
+            android:label="@string/notification_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

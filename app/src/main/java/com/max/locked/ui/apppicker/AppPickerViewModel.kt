@@ -39,6 +39,9 @@ data class AppPickerUiState(
     val loading: Boolean = true,
     val query: String = "",
     val apps: List<AppItem> = emptyList(),
+    val hideNotifications: Boolean = false,
+    /** While locked, an "on" notification setting can't be switched off. */
+    val hideNotificationsLocked: Boolean = false,
 )
 
 @HiltViewModel
@@ -51,7 +54,13 @@ class AppPickerViewModel @Inject constructor(
     private val query = MutableStateFlow("")
 
     val uiState: StateFlow<AppPickerUiState> =
-        combine(installed, query, repository.selectedApps) { apps, q, selected ->
+        combine(
+            installed,
+            query,
+            repository.selectedApps,
+            repository.blockNotificationsSetting,
+            repository.policy,
+        ) { apps, q, selected, hideNotifications, policy ->
             val needle = q.trim()
             AppPickerUiState(
                 loading = apps == null,
@@ -59,8 +68,14 @@ class AppPickerViewModel @Inject constructor(
                 apps = apps.orEmpty()
                     .filter { needle.isEmpty() || it.label.contains(needle, ignoreCase = true) }
                     .map { AppItem(it.packageName, it.label, it.icon, it.packageName in selected) },
+                hideNotifications = hideNotifications,
+                hideNotificationsLocked = hideNotifications && policy.isActive(System.currentTimeMillis()),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPickerUiState())
+
+    fun setHideNotifications(on: Boolean) {
+        viewModelScope.launch { repository.setBlockNotifications(on) }
+    }
 
     init {
         viewModelScope.launch {

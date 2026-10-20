@@ -1,6 +1,9 @@
 package com.max.locked
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.NotificationManager
+import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -17,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.max.locked.service.BlockerAccessibilityService
+import com.max.locked.service.NotificationBlockerService
 import com.max.locked.ui.apppicker.AppPickerScreen
 import com.max.locked.ui.home.HomeScreen
 import com.max.locked.ui.pairing.PairingScreen
@@ -28,6 +32,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val serviceEnabled = mutableStateOf(false)
+    private val notificationAccess = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,9 +45,11 @@ class MainActivity : ComponentActivity() {
                         Scaffold(Modifier.fillMaxSize()) { padding ->
                             HomeScreen(
                                 serviceEnabled = serviceEnabled.value,
+                                notificationAccess = notificationAccess.value,
                                 onOpenAccessibilitySettings = {
                                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                                 },
+                                onOpenNotificationSettings = ::openNotificationAccessSettings,
                                 onChooseApps = { nav.navigate(ROUTE_APPS) },
                                 onPucks = { nav.navigate(ROUTE_PUCKS) },
                                 modifier = Modifier.padding(padding),
@@ -69,6 +76,22 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         serviceEnabled.value = isBlockerEnabled()
+        notificationAccess.value = getSystemService(NotificationManager::class.java)
+            .isNotificationListenerAccessGranted(listenerComponent)
+    }
+
+    private val listenerComponent: ComponentName
+        get() = ComponentName(this, NotificationBlockerService::class.java)
+
+    /** Opens Locked's own notification-access page, falling back to the full list. */
+    private fun openNotificationAccessSettings() {
+        val detail = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+            .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, listenerComponent.flattenToString())
+        try {
+            startActivity(detail)
+        } catch (e: ActivityNotFoundException) {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
     }
 
     private fun isBlockerEnabled(): Boolean {

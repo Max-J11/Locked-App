@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -53,20 +54,37 @@ class BrickRepository @Inject constructor(
     val selectedApps: Flow<Set<String>> =
         modeAppDao.observePackages(DEFAULT_MODE_ID).map { it.toSet() }
 
+    /** "Also hide notifications" for the mode the picker edits. */
+    val blockNotificationsSetting: Flow<Boolean> =
+        modeDao.observe(DEFAULT_MODE_ID).map { it?.blockNotifications == true }
+
     val policy: StateFlow<Policy> = stateFlow
         .flatMapLatest { state ->
             val modeId = state?.activeModeId ?: DEFAULT_MODE_ID
-            modeAppDao.observePackages(modeId).map { apps ->
+            combine(modeDao.observe(modeId), modeAppDao.observePackages(modeId)) { mode, apps ->
                 activePolicy(
                     now = System.currentTimeMillis(),
                     state = state?.toLockState(),
                     modeApps = apps.toSet(),
                     neverBlock = neverBlockList.packages(),
+                    modeBlocksNotifications = mode?.blockNotifications == true,
                 )
             }
         }
-        .onEach { Log.d(TAG, "policy: locked=${it.isLocked} blocked=${it.blockedPackages}") }
+        .onEach {
+            Log.d(TAG, "policy: locked=${it.isLocked} notifs=${it.blockNotifications} blocked=${it.blockedPackages}")
+        }
         .stateIn(scope, SharingStarted.Eagerly, Policy.UNLOCKED)
+
+    /** Turning notification hiding on is always allowed; turning it off is refused while locked. */
+    suspend fun setBlockNotifications(on: Boolean): Boolean {
+        if (!on && policy.value.isActive(System.currentTimeMillis())) {
+            Log.d(TAG, "refused to turn off notification hiding while locked")
+            return false
+        }
+        modeDao.setBlockNotifications(DEFAULT_MODE_ID, on)
+        return true
+    }
 
     fun neverBlockPackages(): Set<String> = neverBlockList.packages()
 

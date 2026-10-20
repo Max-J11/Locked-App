@@ -13,6 +13,8 @@ data class Policy(
     val startedAt: Long?,
     val endsAt: Long?,
     val blockedPackages: Set<String>,
+    /** Dismiss notifications from [blockedPackages] while active. */
+    val blockNotifications: Boolean = false,
 ) {
     fun isActive(now: Long): Boolean = isLocked && (endsAt == null || now < endsAt)
 

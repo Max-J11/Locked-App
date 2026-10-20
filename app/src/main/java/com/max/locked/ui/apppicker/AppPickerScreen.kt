@@ -19,7 +19,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -56,6 +58,33 @@ fun AppPickerScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = state.hideNotifications,
+                        enabled = !state.hideNotificationsLocked,
+                        role = Role.Switch,
+                        onValueChange = viewModel::setHideNotifications,
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.hide_notifications), style = MaterialTheme.typography.bodyLarge)
+                    if (state.hideNotificationsLocked) {
+                        Text(
+                            stringResource(R.string.hide_notifications_locked_note),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                Switch(
+                    checked = state.hideNotifications,
+                    onCheckedChange = null,
+                    enabled = !state.hideNotificationsLocked,
+                )
+            }
             OutlinedTextField(
                 value = state.query,
                 onValueChange = viewModel::onQueryChange,

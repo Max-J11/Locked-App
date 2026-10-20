@@ -11,6 +11,12 @@ import kotlinx.coroutines.flow.Flow
 interface ModeDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfMissing(mode: ModeEntity)
+
+    @Query("SELECT * FROM mode WHERE id = :id")
+    fun observe(id: Long): Flow<ModeEntity?>
+
+    @Query("UPDATE mode SET blockNotifications = :on WHERE id = :id")
+    suspend fun setBlockNotifications(id: Long, on: Boolean)
 }
 
 @Dao

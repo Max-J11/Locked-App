@@ -25,7 +25,9 @@ import com.max.locked.R
 @Composable
 fun HomeScreen(
     serviceEnabled: Boolean,
+    notificationAccess: Boolean,
     onOpenAccessibilitySettings: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
     onChooseApps: () -> Unit,
     onPucks: () -> Unit,
     modifier: Modifier = Modifier,
@@ -75,6 +77,15 @@ fun HomeScreen(
         )
         OutlinedButton(onClick = onOpenAccessibilitySettings, modifier = Modifier.padding(top = 8.dp)) {
             Text(stringResource(R.string.open_accessibility_settings))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(if (notificationAccess) R.string.notifications_on else R.string.notifications_off),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        OutlinedButton(onClick = onOpenNotificationSettings, modifier = Modifier.padding(top = 8.dp)) {
+            Text(stringResource(R.string.open_notification_settings))
         }
     }
 }

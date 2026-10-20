@@ -5,6 +5,14 @@
     <string name="accessibility_label">Locked</string>
     <string name="accessibility_description">Locked uses this to notice when an app you\'ve chosen to lock is opened, and gently sends you back to the home screen. It only looks at which app is on screen. Everything stays on this phone. Nothing is sent anywhere.</string>
 
+    <!-- Notification listener -->
+    <string name="notification_listener_label">Locked</string>
+    <string name="notifications_on">Notification access is on</string>
+    <string name="notifications_off">Notification access is off</string>
+    <string name="open_notification_settings">Open notification access</string>
+    <string name="hide_notifications">Also hide notifications from these apps</string>
+    <string name="hide_notifications_locked_note">This stays on until you unlock.</string>
+
     <!-- Block overlay -->
     <string name="overlay_title">Taking a break</string>
     <string name="overlay_message">%1$s is paused right now.</string>

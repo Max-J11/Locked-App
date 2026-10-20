@@ -55,6 +55,23 @@ class ActivePolicyTest {
     }
 
     @Test
+    fun `notification blocking carries through only while locked`() {
+        val locked = activePolicy(now, locked(), setOf(youtube), emptySet(), modeBlocksNotifications = true)
+        assertTrue(locked.blockNotifications)
+
+        val unlocked = activePolicy(
+            now, locked().copy(isLocked = false), setOf(youtube), emptySet(), modeBlocksNotifications = true,
+        )
+        assertFalse(unlocked.blockNotifications)
+    }
+
+    @Test
+    fun `notification blocking is off when the mode has it off`() {
+        val policy = activePolicy(now, locked(), setOf(youtube), emptySet(), modeBlocksNotifications = false)
+        assertFalse(policy.blockNotifications)
+    }
+
+    @Test
     fun `timed lock that already ended is unlocked`() {
         assertEquals(Policy.UNLOCKED, activePolicy(now, locked(endsAt = now), setOf(youtube), emptySet()))
     }
