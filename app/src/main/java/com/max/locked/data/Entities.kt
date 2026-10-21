@@ -65,3 +65,11 @@ data class BrickStateEntity(
         const val SINGLE_ROW_ID = 0
     }
 }
+
+/** A mode plus how many apps it blocks, for list screens. Not a table. */
+data class ModeSummary(
+    val id: Long,
+    val name: String,
+    val blockNotifications: Boolean,
+    val appCount: Int,
+)

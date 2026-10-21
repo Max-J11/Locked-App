@@ -25,11 +25,11 @@
     <string name="open_accessibility_settings">Open accessibility settings</string>
     <string name="status_locked">Locked</string>
     <string name="status_unlocked">Unlocked</string>
-    <plurals name="apps_selected">
-        <item quantity="one">%d app chosen</item>
-        <item quantity="other">%d apps chosen</item>
+    <plurals name="modes_count">
+        <item quantity="one">%d mode</item>
+        <item quantity="other">%d modes</item>
     </plurals>
-    <string name="choose_apps">Choose apps</string>
+    <string name="home_active_mode">Mode: %1$s</string>
     <string name="home_hint_pair">Pair a puck to start.</string>
     <string name="home_hint_lock">Tap your puck to lock.</string>
     <string name="home_hint_unlock">Tap your puck to unlock.</string>
@@ -74,8 +74,30 @@
     <string name="tap_unlocked">Unlocked</string>
     <string name="tap_not_paired">Not a paired puck.</string>
 
+    <!-- Modes -->
+    <string name="modes_title">Modes</string>
+    <string name="modes_add">Add a mode</string>
+    <string name="modes_add_title">Name this mode</string>
+    <string name="modes_add_confirm">Add</string>
+    <plurals name="mode_app_count">
+        <item quantity="one">%d app</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
+    <string name="mode_hides_notifications">hides notifications</string>
+    <string name="mode_in_use">in use now</string>
+    <string name="mode_rename">Rename</string>
+    <string name="mode_rename_title">Rename this mode</string>
+    <string name="mode_delete">Delete</string>
+    <string name="mode_delete_title">Delete %1$s?</string>
+    <string name="mode_delete_body">Any pucks set to this mode will switch to Default.</string>
+    <string name="mode_active_note">This mode is in use right now. Apps can be removed once you\'re unlocked.</string>
+    <string name="save">Save</string>
+
+    <!-- Puck modes -->
+    <string name="puck_mode">Locks: %1$s</string>
+    <string name="puck_choose_mode_title">Which mode should %1$s lock?</string>
+
     <!-- App picker -->
-    <string name="app_picker_title">Choose apps</string>
     <string name="app_picker_search">Search apps</string>
     <string name="back">Back</string>
 </resources>

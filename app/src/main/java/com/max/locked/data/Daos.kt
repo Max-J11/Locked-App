@@ -17,6 +17,21 @@ interface ModeDao {
 
     @Query("UPDATE mode SET blockNotifications = :on WHERE id = :id")
     suspend fun setBlockNotifications(id: Long, on: Boolean)
+
+    @Query(
+        "SELECT m.id, m.name, m.blockNotifications, COUNT(a.packageName) AS appCount " +
+            "FROM mode m LEFT JOIN mode_app a ON a.modeId = m.id GROUP BY m.id ORDER BY m.id",
+    )
+    fun observeSummaries(): Flow<List<ModeSummary>>
+
+    @Insert
+    suspend fun insert(mode: ModeEntity): Long
+
+    @Query("UPDATE mode SET name = :name WHERE id = :id")
+    suspend fun rename(id: Long, name: String)
+
+    @Query("DELETE FROM mode WHERE id = :id")
+    suspend fun delete(id: Long)
 }
 
 @Dao
@@ -44,6 +59,12 @@ interface PairedKeyDao {
 
     @Query("DELETE FROM paired_key WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("UPDATE paired_key SET modeId = :modeId WHERE id = :id")
+    suspend fun setMode(id: Long, modeId: Long)
+
+    @Query("UPDATE paired_key SET modeId = :to WHERE modeId = :from")
+    suspend fun reassignMode(from: Long, to: Long)
 }
 
 @Dao

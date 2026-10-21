@@ -1,6 +1,10 @@
 package com.max.locked.ui.pucks
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,6 +45,7 @@ fun PucksScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf<PairedKeyEntity?>(null) }
+    var choosingMode by remember { mutableStateOf<PairedKeyEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -61,10 +66,16 @@ fun PucksScreen(
             LazyColumn(Modifier.weight(1f, fill = false)) {
                 items(state.pucks, key = { it.id }) { puck ->
                     Row(
-                        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        Modifier.fillMaxWidth().clickable { choosingMode = puck }.padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(puck.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Column(Modifier.weight(1f)) {
+                            Text(puck.name, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.puck_mode, state.modeName(puck.modeId)),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
                         TextButton(onClick = { confirmDelete = puck }, enabled = !state.isLocked) {
                             Text(stringResource(R.string.pucks_remove))
                         }
@@ -82,6 +93,39 @@ fun PucksScreen(
                 Text(stringResource(R.string.pucks_pair_new))
             }
         }
+    }
+
+    choosingMode?.let { puck ->
+        AlertDialog(
+            onDismissRequest = { choosingMode = null },
+            title = { Text(stringResource(R.string.puck_choose_mode_title, puck.name)) },
+            text = {
+                Column {
+                    state.modes.forEach { mode ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = mode.id == puck.modeId,
+                                    role = Role.RadioButton,
+                                    onClick = {
+                                        viewModel.setMode(puck.id, mode.id)
+                                        choosingMode = null
+                                    },
+                                )
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = mode.id == puck.modeId, onClick = null)
+                            Text(mode.name, modifier = Modifier.padding(start = 12.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { choosingMode = null }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 
     confirmDelete?.let { puck ->

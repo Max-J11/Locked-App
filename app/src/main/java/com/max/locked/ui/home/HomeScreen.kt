@@ -28,7 +28,7 @@ fun HomeScreen(
     notificationAccess: Boolean,
     onOpenAccessibilitySettings: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
-    onChooseApps: () -> Unit,
+    onModes: () -> Unit,
     onPucks: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -44,6 +44,12 @@ fun HomeScreen(
             text = stringResource(if (state.isLocked) R.string.status_locked else R.string.status_unlocked),
             style = MaterialTheme.typography.displaySmall,
         )
+        state.activeModeName?.let { name ->
+            Text(
+                text = stringResource(R.string.home_active_mode, name),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(
@@ -59,10 +65,10 @@ fun HomeScreen(
 
         Spacer(Modifier.height(24.dp))
         Text(
-            text = pluralStringResource(R.plurals.apps_selected, state.appCount, state.appCount),
+            text = pluralStringResource(R.plurals.modes_count, state.modeCount, state.modeCount),
             style = MaterialTheme.typography.bodyLarge,
         )
-        TextButton(onClick = onChooseApps) { Text(stringResource(R.string.choose_apps)) }
+        TextButton(onClick = onModes) { Text(stringResource(R.string.modes_title)) }
 
         Text(
             text = pluralStringResource(R.plurals.pucks_paired, state.puckCount, state.puckCount),

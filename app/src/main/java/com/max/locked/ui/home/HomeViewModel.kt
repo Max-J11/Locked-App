@@ -12,7 +12,9 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val isLocked: Boolean = false,
-    val appCount: Int = 0,
+    /** Name of the mode in use while locked. */
+    val activeModeName: String? = null,
+    val modeCount: Int = 0,
     val puckCount: Int = 0,
 )
 
@@ -22,10 +24,12 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> =
-        combine(repository.policy, repository.selectedApps, repository.pairedKeys) { policy, apps, keys ->
+        combine(repository.policy, repository.modes, repository.pairedKeys) { policy, modes, keys ->
+            val locked = policy.isActive(System.currentTimeMillis())
             HomeUiState(
-                isLocked = policy.isActive(System.currentTimeMillis()),
-                appCount = apps.size,
+                isLocked = locked,
+                activeModeName = if (locked) modes.firstOrNull { it.id == policy.modeId }?.name else null,
+                modeCount = modes.size,
                 puckCount = keys.size,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())

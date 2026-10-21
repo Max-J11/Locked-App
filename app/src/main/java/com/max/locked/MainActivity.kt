@@ -21,7 +21,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.max.locked.service.BlockerAccessibilityService
 import com.max.locked.service.NotificationBlockerService
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.max.locked.ui.apppicker.AppPickerScreen
+import com.max.locked.ui.apppicker.AppPickerViewModel
+import com.max.locked.ui.modes.ModesScreen
 import com.max.locked.ui.home.HomeScreen
 import com.max.locked.ui.pairing.PairingScreen
 import com.max.locked.ui.pucks.PucksScreen
@@ -50,13 +54,22 @@ class MainActivity : ComponentActivity() {
                                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                                 },
                                 onOpenNotificationSettings = ::openNotificationAccessSettings,
-                                onChooseApps = { nav.navigate(ROUTE_APPS) },
+                                onModes = { nav.navigate(ROUTE_MODES) },
                                 onPucks = { nav.navigate(ROUTE_PUCKS) },
                                 modifier = Modifier.padding(padding),
                             )
                         }
                     }
-                    composable(ROUTE_APPS) {
+                    composable(ROUTE_MODES) {
+                        ModesScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpenMode = { id -> nav.navigate("$ROUTE_MODE/$id") },
+                        )
+                    }
+                    composable(
+                        route = "$ROUTE_MODE/{${AppPickerViewModel.ARG_MODE_ID}}",
+                        arguments = listOf(navArgument(AppPickerViewModel.ARG_MODE_ID) { type = NavType.LongType }),
+                    ) {
                         AppPickerScreen(onBack = { nav.popBackStack() })
                     }
                     composable(ROUTE_PUCKS) {
@@ -105,7 +118,8 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val ROUTE_HOME = "home"
-        const val ROUTE_APPS = "apps"
+        const val ROUTE_MODES = "modes"
+        const val ROUTE_MODE = "mode"
         const val ROUTE_PUCKS = "pucks"
         const val ROUTE_PAIR = "pair"
     }

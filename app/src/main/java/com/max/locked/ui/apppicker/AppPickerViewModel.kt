@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.max.locked.data.BrickRepository
@@ -26,6 +27,8 @@ data class AppItem(
     val label: String,
     val icon: ImageBitmap?,
     val selected: Boolean,
+    /** Chosen and the mode is in use: can't be unchecked until unlocked. */
+    val locked: Boolean,
 )
 
 /** Loaded once per screen visit, off the main thread. */
@@ -37,18 +40,26 @@ private class InstalledApp(
 
 data class AppPickerUiState(
     val loading: Boolean = true,
+    val modeName: String = "",
+    val isDefaultMode: Boolean = true,
+    /** A lock is in effect using this mode: settings here can only get stricter. */
+    val modeActive: Boolean = false,
     val query: String = "",
     val apps: List<AppItem> = emptyList(),
     val hideNotifications: Boolean = false,
-    /** While locked, an "on" notification setting can't be switched off. */
+    /** While the mode is in use, an "on" notification setting can't be switched off. */
     val hideNotificationsLocked: Boolean = false,
 )
 
+/** Edits one mode: its apps, its notification setting, its name. */
 @HiltViewModel
 class AppPickerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: BrickRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    val modeId: Long = checkNotNull(savedStateHandle.get<Long>(ARG_MODE_ID))
 
     private val installed = MutableStateFlow<List<InstalledApp>?>(null)
     private val query = MutableStateFlow("")
@@ -57,25 +68,29 @@ class AppPickerViewModel @Inject constructor(
         combine(
             installed,
             query,
-            repository.selectedApps,
-            repository.blockNotificationsSetting,
+            repository.selectedApps(modeId),
+            repository.mode(modeId),
             repository.policy,
-        ) { apps, q, selected, hideNotifications, policy ->
+        ) { apps, q, selected, mode, policy ->
+            val active = policy.isActive(System.currentTimeMillis()) && policy.modeId == modeId
+            val hideNotifications = mode?.blockNotifications == true
             val needle = q.trim()
             AppPickerUiState(
                 loading = apps == null,
+                modeName = mode?.name.orEmpty(),
+                isDefaultMode = modeId == BrickRepository.DEFAULT_MODE_ID,
+                modeActive = active,
                 query = q,
                 apps = apps.orEmpty()
                     .filter { needle.isEmpty() || it.label.contains(needle, ignoreCase = true) }
-                    .map { AppItem(it.packageName, it.label, it.icon, it.packageName in selected) },
+                    .map {
+                        val isSelected = it.packageName in selected
+                        AppItem(it.packageName, it.label, it.icon, isSelected, locked = isSelected && active)
+                    },
                 hideNotifications = hideNotifications,
-                hideNotificationsLocked = hideNotifications && policy.isActive(System.currentTimeMillis()),
+                hideNotificationsLocked = hideNotifications && active,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPickerUiState())
-
-    fun setHideNotifications(on: Boolean) {
-        viewModelScope.launch { repository.setBlockNotifications(on) }
-    }
 
     init {
         viewModelScope.launch {
@@ -87,10 +102,22 @@ class AppPickerViewModel @Inject constructor(
         query.value = value
     }
 
+    fun setHideNotifications(on: Boolean) {
+        viewModelScope.launch { repository.setBlockNotifications(modeId, on) }
+    }
+
     fun setSelected(packageName: String, selected: Boolean) {
         viewModelScope.launch {
-            if (selected) repository.addApp(packageName) else repository.removeApp(packageName)
+            if (selected) repository.addApp(modeId, packageName) else repository.removeApp(modeId, packageName)
         }
+    }
+
+    fun rename(name: String) {
+        viewModelScope.launch { repository.renameMode(modeId, name) }
+    }
+
+    fun delete(onDeleted: () -> Unit) {
+        viewModelScope.launch { if (repository.deleteMode(modeId)) onDeleted() }
     }
 
     /** Apps with a launcher icon, minus the never-block list, sorted by name, icons pre-rendered. */
@@ -114,7 +141,8 @@ class AppPickerViewModel @Inject constructor(
             .sortedBy { it.label.lowercase() }
     }
 
-    private companion object {
-        const val ICON_DP = 36
+    companion object {
+        const val ARG_MODE_ID = "modeId"
+        private const val ICON_DP = 36
     }
 }

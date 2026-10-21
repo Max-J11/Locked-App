@@ -1,6 +1,7 @@
 package com.max.locked.data
 
 import android.util.Log
+import androidx.room.withTransaction
 import com.max.locked.di.ApplicationScope
 import com.max.locked.domain.LockState
 import com.max.locked.domain.activePolicy
@@ -27,7 +28,7 @@ import javax.inject.Singleton
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class BrickRepository @Inject constructor(
-    db: LockedDatabase,
+    private val db: LockedDatabase,
     private val neverBlockList: NeverBlockList,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
@@ -50,13 +51,48 @@ class BrickRepository @Inject constructor(
 
     private val stateFlow = stateDao.observe()
 
-    /** Apps chosen for the mode the picker edits. One mode until Milestone 6. */
-    val selectedApps: Flow<Set<String>> =
-        modeAppDao.observePackages(DEFAULT_MODE_ID).map { it.toSet() }
+    // --- Modes ----------------------------------------------------------------------------
 
-    /** "Also hide notifications" for the mode the picker edits. */
-    val blockNotificationsSetting: Flow<Boolean> =
-        modeDao.observe(DEFAULT_MODE_ID).map { it?.blockNotifications == true }
+    /** All modes with their app counts, oldest first (Default is always first). */
+    val modes: Flow<List<ModeSummary>> = modeDao.observeSummaries()
+
+    fun mode(id: Long): Flow<ModeEntity?> = modeDao.observe(id)
+
+    fun selectedApps(modeId: Long): Flow<Set<String>> =
+        modeAppDao.observePackages(modeId).map { it.toSet() }
+
+    /** True while a lock is in effect using this mode. Such a mode can only get stricter. */
+    fun isModeActive(modeId: Long, now: Long = System.currentTimeMillis()): Boolean {
+        val p = policy.value
+        return p.isActive(now) && p.modeId == modeId
+    }
+
+    suspend fun createMode(name: String): Long {
+        val id = modeDao.insert(ModeEntity(name = name.trim()))
+        Log.d(TAG, "created mode $id")
+        return id
+    }
+
+    suspend fun renameMode(id: Long, name: String) {
+        modeDao.rename(id, name.trim())
+    }
+
+    /**
+     * Deletes a mode. The Default mode and the mode currently in use can't be deleted.
+     * Pucks set to the deleted mode switch to Default. Returns false if refused.
+     */
+    suspend fun deleteMode(id: Long): Boolean {
+        if (id == DEFAULT_MODE_ID || isModeActive(id)) {
+            Log.d(TAG, "refused to delete mode $id")
+            return false
+        }
+        db.withTransaction {
+            pairedKeyDao.reassignMode(from = id, to = DEFAULT_MODE_ID)
+            modeDao.delete(id) // mode_app rows cascade
+        }
+        Log.d(TAG, "deleted mode $id")
+        return true
+    }
 
     val policy: StateFlow<Policy> = stateFlow
         .flatMapLatest { state ->
@@ -76,13 +112,13 @@ class BrickRepository @Inject constructor(
         }
         .stateIn(scope, SharingStarted.Eagerly, Policy.UNLOCKED)
 
-    /** Turning notification hiding on is always allowed; turning it off is refused while locked. */
-    suspend fun setBlockNotifications(on: Boolean): Boolean {
-        if (!on && policy.value.isActive(System.currentTimeMillis())) {
-            Log.d(TAG, "refused to turn off notification hiding while locked")
+    /** Turning notification hiding on is always allowed; turning it off is refused while the mode is in use. */
+    suspend fun setBlockNotifications(modeId: Long, on: Boolean): Boolean {
+        if (!on && isModeActive(modeId)) {
+            Log.d(TAG, "refused to turn off notification hiding for active mode $modeId")
             return false
         }
-        modeDao.setBlockNotifications(DEFAULT_MODE_ID, on)
+        modeDao.setBlockNotifications(modeId, on)
         return true
     }
 
@@ -171,15 +207,25 @@ class BrickRepository @Inject constructor(
         return true
     }
 
-    // --- Apps -----------------------------------------------------------------------------
-
-    suspend fun addApp(packageName: String) {
-        modeAppDao.insert(ModeAppEntity(DEFAULT_MODE_ID, packageName))
+    /** Which mode a puck locks. Takes effect from its next tap, so it's allowed while locked. */
+    suspend fun setPuckMode(keyId: Long, modeId: Long) {
+        pairedKeyDao.setMode(keyId, modeId)
     }
 
-    suspend fun removeApp(packageName: String) {
-        // "Only stricter while locked" is enforced in Milestone 7.
-        modeAppDao.delete(DEFAULT_MODE_ID, packageName)
+    // --- Apps -----------------------------------------------------------------------------
+
+    suspend fun addApp(modeId: Long, packageName: String) {
+        modeAppDao.insert(ModeAppEntity(modeId, packageName))
+    }
+
+    /** Only stricter while locked: apps can't be removed from the mode in use. Returns false if refused. */
+    suspend fun removeApp(modeId: Long, packageName: String): Boolean {
+        if (isModeActive(modeId)) {
+            Log.d(TAG, "refused to remove $packageName from active mode $modeId")
+            return false
+        }
+        modeAppDao.delete(modeId, packageName)
+        return true
     }
 
     private fun BrickStateEntity.toLockState() = LockState(
