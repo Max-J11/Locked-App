@@ -33,6 +33,34 @@
     <string name="home_hint_pair">Pair a puck to start.</string>
     <string name="home_hint_lock">Tap your puck to lock.</string>
     <string name="home_hint_unlock">Tap your puck to unlock.</string>
+    <string name="home_hint_unlock_with">Tap %1$s to unlock.</string>
+    <string name="home_until">Until %1$s</string>
+    <string name="home_hint_no_puck">No puck is set to this mode, so it ends on its own.</string>
+    <string name="names_or">%1$s or %2$s</string>
+    <string name="when_tomorrow">tomorrow at %1$s</string>
+    <string name="lock_for_ends">Ends: %1$s</string>
+    <string name="lock_for_ended_by">Can be ended early with %1$s.</string>
+    <string name="lock_for_no_puck">No puck is set to this mode. It will end on its own.</string>
+
+    <!-- Timed lock -->
+    <string name="lock_for_button">Lock for…</string>
+    <string name="lock_for_title">Lock for</string>
+    <string name="lock_for_until">Until a time…</string>
+    <string name="lock_for_mode">Mode</string>
+    <string name="lock_for_confirm">Lock</string>
+    <string name="duration_minutes">%d minutes</string>
+    <plurals name="duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+
+    <!-- Unlock without puck -->
+    <string name="cooldown_button">Unlock without puck</string>
+    <string name="cooldown_title">Unlock without puck?</string>
+    <string name="cooldown_body">Locked will unlock in %1$d minutes. You can change your mind any time before then.</string>
+    <string name="cooldown_start">Start</string>
+    <string name="cooldown_running">Unlocking at %1$s.</string>
+    <string name="cooldown_cancel">Stay locked</string>
     <plurals name="pucks_paired">
         <item quantity="one">%d puck paired</item>
         <item quantity="other">%d pucks paired</item>
@@ -46,7 +74,7 @@
     <string name="pucks_remove">Remove</string>
     <string name="pucks_remove_title">Remove %1$s?</string>
     <string name="pucks_remove_body">This puck won\'t lock or unlock anything after it\'s removed. You can pair it again any time.</string>
-    <string name="pucks_locked_note">Pucks can be removed once you\'re unlocked.</string>
+    <string name="pucks_locked_note">Pucks can be removed or changed once you\'re unlocked.</string>
     <string name="cancel">Cancel</string>
 
     <!-- Pairing -->
@@ -73,6 +101,10 @@
     <string name="tap_locked">Locked</string>
     <string name="tap_unlocked">Unlocked</string>
     <string name="tap_not_paired">Not a paired puck.</string>
+    <string name="tap_wrong_puck">Locked with %1$s. Use that puck to unlock.</string>
+    <string name="tap_wrong_puck_unnamed">Use the puck you locked with to unlock.</string>
+    <string name="tap_wrong_mode">Use a puck set to %1$s to unlock.</string>
+    <string name="tap_wrong_mode_unnamed">This puck isn\'t set to the mode that\'s locked.</string>
 
     <!-- Modes -->
     <string name="modes_title">Modes</string>

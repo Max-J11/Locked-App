@@ -15,6 +15,9 @@ interface ModeDao {
     @Query("SELECT * FROM mode WHERE id = :id")
     fun observe(id: Long): Flow<ModeEntity?>
 
+    @Query("SELECT * FROM mode WHERE id = :id")
+    suspend fun get(id: Long): ModeEntity?
+
     @Query("UPDATE mode SET blockNotifications = :on WHERE id = :id")
     suspend fun setBlockNotifications(id: Long, on: Boolean)
 
@@ -50,6 +53,9 @@ interface ModeAppDao {
 interface PairedKeyDao {
     @Query("SELECT * FROM paired_key ORDER BY createdAt")
     fun observeAll(): Flow<List<PairedKeyEntity>>
+
+    @Query("SELECT * FROM paired_key WHERE id = :id")
+    suspend fun findById(id: Long): PairedKeyEntity?
 
     @Query("SELECT * FROM paired_key WHERE tagUid = :tagUid LIMIT 1")
     suspend fun findByUid(tagUid: String): PairedKeyEntity?

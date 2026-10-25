@@ -3,8 +3,17 @@ package com.max.locked.data
 import android.util.Log
 import androidx.room.withTransaction
 import com.max.locked.di.ApplicationScope
+import com.max.locked.domain.COOLDOWN_MILLIS
 import com.max.locked.domain.LockState
+import com.max.locked.domain.SOURCE_TIMER
 import com.max.locked.domain.activePolicy
+import com.max.locked.domain.canStartCooldown
+import com.max.locked.domain.canUnlockWithPuck
+import com.max.locked.domain.lockingPuckId
+import com.max.locked.domain.puckSource
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -94,19 +103,36 @@ class BrickRepository @Inject constructor(
         return true
     }
 
+    /**
+     * Recomputed whenever stored state changes, and again at the moment a timer or cooldown ends,
+     * so screens and the notification sweep see the change on time. Enforcers also check the
+     * clock on every read, so a late tick (deep sleep) never leaves anything blocked too long.
+     */
     val policy: StateFlow<Policy> = stateFlow
         .flatMapLatest { state ->
             val modeId = state?.activeModeId ?: DEFAULT_MODE_ID
             combine(modeDao.observe(modeId), modeAppDao.observePackages(modeId)) { mode, apps ->
-                activePolicy(
-                    now = System.currentTimeMillis(),
-                    state = state?.toLockState(),
-                    modeApps = apps.toSet(),
-                    neverBlock = neverBlockList.packages(),
-                    modeBlocksNotifications = mode?.blockNotifications == true,
-                )
+                { now: Long ->
+                    activePolicy(
+                        now = now,
+                        state = state?.toLockState(),
+                        modeApps = apps.toSet(),
+                        neverBlock = neverBlockList.packages(),
+                        modeBlocksNotifications = mode?.blockNotifications == true,
+                    )
+                }
             }
         }
+        .transformLatest { compute ->
+            while (true) {
+                val now = System.currentTimeMillis()
+                val p = compute(now)
+                emit(p)
+                val next = p.nextChangeAt(now) ?: break
+                delay(next - now + TICK_SLACK_MILLIS)
+            }
+        }
+        .distinctUntilChanged()
         .onEach {
             Log.d(TAG, "policy: locked=${it.isLocked} notifs=${it.blockNotifications} blocked=${it.blockedPackages}")
         }
@@ -127,39 +153,93 @@ class BrickRepository @Inject constructor(
     // --- Lock state -----------------------------------------------------------------------
 
     suspend fun lock(source: String, modeId: Long = DEFAULT_MODE_ID) = stateMutex.withLock {
-        lockLocked(source, modeId)
+        lockLocked(source, modeId, endsAt = null)
     }
 
     suspend fun unlock(source: String) = stateMutex.withLock {
         unlockLocked(source)
     }
 
-    /**
-     * Puck tap: lock with the key's mode if unlocked, otherwise unlock.
-     * Reads stored state rather than [policy], because a tap can cold-start the process before
-     * the StateFlow has its first value. Returns true if now locked.
-     */
-    suspend fun toggleFromKey(key: PairedKeyEntity): Boolean = stateMutex.withLock {
+    /** Timed lock from the app. Ends on its own at [endsAt]; any puck can end it early. */
+    suspend fun lockUntil(endsAt: Long, modeId: Long) = stateMutex.withLock {
         val now = System.currentTimeMillis()
-        val lockedNow = activePolicy(now, stateDao.get()?.toLockState(), emptySet(), emptySet())
-            .isActive(now)
-        val source = "puck:${key.id}"
-        if (lockedNow) unlockLocked(source) else lockLocked(source, key.modeId)
-        !lockedNow
+        if (isLockedNow(now) || endsAt <= now) return@withLock
+        lockLocked(SOURCE_TIMER, modeId, endsAt)
     }
 
-    private suspend fun lockLocked(source: String, modeId: Long) {
+    /** "Unlock without puck": the lock ends after [COOLDOWN_MILLIS]. Does nothing if not locked. */
+    suspend fun startCooldown() = stateMutex.withLock {
+        val now = System.currentTimeMillis()
+        val current = stateDao.get() ?: return@withLock
+        if (!canStartCooldown(isLockedNow(now), current.endsAt, current.cooldownEndsAt, now)) {
+            Log.d(TAG, "cooldown not started (not locked, already running, or the lock ends sooner)")
+            return@withLock
+        }
+        stateDao.upsert(current.copy(cooldownEndsAt = now + COOLDOWN_MILLIS))
+        Log.d(TAG, "cooldown started")
+    }
+
+    /** Stay locked after all. Always allowed: it only makes things stricter. */
+    suspend fun cancelCooldown() = stateMutex.withLock {
+        val current = stateDao.get() ?: return@withLock
+        if (!isLockedNow(System.currentTimeMillis())) return@withLock
+        stateDao.upsert(current.copy(cooldownEndsAt = null))
+        Log.d(TAG, "cooldown cancelled")
+    }
+
+    sealed interface TapResult {
+        data object Locked : TapResult
+        data object Unlocked : TapResult
+        /** Locked by a different puck, which is the only one that can unlock. */
+        data class WrongPuck(val lockingPuckName: String?) : TapResult
+        /** A timed lock: only pucks set to its mode can end it early. */
+        data class WrongMode(val modeName: String?) : TapResult
+    }
+
+    /**
+     * Puck tap: lock with the key's mode if unlocked, otherwise unlock (if this puck is allowed).
+     * Reads stored state rather than [policy], because a tap can cold-start the process before
+     * the StateFlow has its first value.
+     */
+    suspend fun toggleFromKey(key: PairedKeyEntity): TapResult = stateMutex.withLock {
+        val now = System.currentTimeMillis()
+        val source = puckSource(key.id)
+        if (!isLockedNow(now)) {
+            lockLocked(source, key.modeId, endsAt = null)
+            return@withLock TapResult.Locked
+        }
+        val current = stateDao.get()
+        val lockSource = current?.source
+        val activeModeId = current?.activeModeId
+        if (!canUnlockWithPuck(lockSource, key.id, key.modeId, activeModeId)) {
+            Log.d(TAG, "puck ${key.id} can't unlock a lock started by $lockSource (mode $activeModeId)")
+            val lockingId = lockingPuckId(lockSource)
+            return@withLock if (lockingId != null) {
+                TapResult.WrongPuck(pairedKeyDao.findById(lockingId)?.name)
+            } else {
+                TapResult.WrongMode(activeModeId?.let { modeDao.get(it)?.name })
+            }
+        }
+        unlockLocked(source)
+        TapResult.Unlocked
+    }
+
+    private suspend fun isLockedNow(now: Long): Boolean =
+        activePolicy(now, stateDao.get()?.toLockState(), emptySet(), emptySet()).isActive(now)
+
+    private suspend fun lockLocked(source: String, modeId: Long, endsAt: Long?) {
         val current = stateDao.get() ?: BrickStateEntity()
         stateDao.upsert(
             current.copy(
                 isBricked = true,
                 activeModeId = modeId,
                 startedAt = System.currentTimeMillis(),
-                endsAt = null,
+                endsAt = endsAt,
+                cooldownEndsAt = null,
                 source = source,
             ),
         )
-        Log.d(TAG, "locked (source=$source, mode=$modeId)")
+        Log.d(TAG, "locked (source=$source, mode=$modeId, endsAt=$endsAt)")
     }
 
     private suspend fun unlockLocked(source: String) {
@@ -170,6 +250,7 @@ class BrickRepository @Inject constructor(
                 activeModeId = null,
                 startedAt = null,
                 endsAt = null,
+                cooldownEndsAt = null,
                 source = source,
             ),
         )
@@ -208,8 +289,14 @@ class BrickRepository @Inject constructor(
     }
 
     /** Which mode a puck locks. Takes effect from its next tap, so it's allowed while locked. */
-    suspend fun setPuckMode(keyId: Long, modeId: Long) {
+    suspend fun setPuckMode(keyId: Long, modeId: Long): Boolean {
+        // Frozen while locked: moving a puck onto the active mode would let it unlock a timed lock.
+        if (policy.value.isActive(System.currentTimeMillis())) {
+            Log.d(TAG, "refused to change puck $keyId's mode while locked")
+            return false
+        }
         pairedKeyDao.setMode(keyId, modeId)
+        return true
     }
 
     // --- Apps -----------------------------------------------------------------------------
@@ -233,10 +320,13 @@ class BrickRepository @Inject constructor(
         activeModeId = activeModeId,
         startedAt = startedAt,
         endsAt = endsAt,
+        cooldownEndsAt = cooldownEndsAt,
+        source = source,
     )
 
     companion object {
         const val DEFAULT_MODE_ID = 1L
+        private const val TICK_SLACK_MILLIS = 50L
         private const val TAG = "Locked"
     }
 }

@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.max.locked.R
 import com.max.locked.data.BrickRepository
+import com.max.locked.data.BrickRepository.TapResult
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -59,17 +60,29 @@ class TapActivity : ComponentActivity() {
                 return@launch
             }
 
-            val nowLocked = repository.toggleFromKey(key)
-            Log.d(TAG, "tap accepted from puck ${key.id}: now locked=$nowLocked")
-            feedback(
-                if (nowLocked) R.string.tap_locked else R.string.tap_unlocked,
-                HapticFeedbackConstants.CONFIRM,
-            )
+            val result = repository.toggleFromKey(key)
+            Log.d(TAG, "tap from puck ${key.id}: $result")
+            when (result) {
+                TapResult.Locked -> feedback(getString(R.string.tap_locked), HapticFeedbackConstants.CONFIRM)
+                TapResult.Unlocked -> feedback(getString(R.string.tap_unlocked), HapticFeedbackConstants.CONFIRM)
+                is TapResult.WrongPuck -> feedback(
+                    result.lockingPuckName?.let { getString(R.string.tap_wrong_puck, it) }
+                        ?: getString(R.string.tap_wrong_puck_unnamed),
+                    HapticFeedbackConstants.REJECT,
+                )
+                is TapResult.WrongMode -> feedback(
+                    result.modeName?.let { getString(R.string.tap_wrong_mode, it) }
+                        ?: getString(R.string.tap_wrong_mode_unnamed),
+                    HapticFeedbackConstants.REJECT,
+                )
+            }
         }
     }
 
+    private fun feedback(message: Int, haptic: Int) = feedback(getString(message), haptic)
+
     /** Buzz once the window is attached (post waits for that), then toast and finish. */
-    private fun feedback(message: Int, haptic: Int) {
+    private fun feedback(message: String, haptic: Int) {
         Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
         window.decorView.post {
             window.decorView.performHapticFeedback(haptic)

@@ -66,7 +66,10 @@ fun PucksScreen(
             LazyColumn(Modifier.weight(1f, fill = false)) {
                 items(state.pucks, key = { it.id }) { puck ->
                     Row(
-                        Modifier.fillMaxWidth().clickable { choosingMode = puck }.padding(vertical = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !state.isLocked) { choosingMode = puck }
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {

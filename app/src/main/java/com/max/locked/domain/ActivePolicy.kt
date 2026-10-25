@@ -5,7 +5,8 @@ import com.max.locked.data.Policy
 /**
  * Works out what is blocked right now from stored state plus the clock.
  *
- * - Unlocked, or a timed lock whose end has passed: nothing is blocked.
+ * - Unlocked, a timed lock whose end has passed, or an "unlock without puck" wait that has
+ *   finished: nothing is blocked.
  * - Locked: the mode's apps are blocked, minus anything on the never-block list, and their
  *   notifications are dismissed if the mode says so.
  *
@@ -20,6 +21,7 @@ fun activePolicy(
 ): Policy {
     if (state == null || !state.isLocked) return Policy.UNLOCKED
     if (state.endsAt != null && now >= state.endsAt) return Policy.UNLOCKED
+    if (state.cooldownEndsAt != null && now >= state.cooldownEndsAt) return Policy.UNLOCKED
 
     return Policy(
         isLocked = true,
@@ -28,6 +30,8 @@ fun activePolicy(
         endsAt = state.endsAt,
         blockedPackages = modeApps - neverBlock,
         blockNotifications = modeBlocksNotifications,
+        cooldownEndsAt = state.cooldownEndsAt,
+        source = state.source,
     )
 }
 

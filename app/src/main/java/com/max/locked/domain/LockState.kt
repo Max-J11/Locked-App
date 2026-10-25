@@ -6,4 +6,8 @@ data class LockState(
     val activeModeId: Long?,
     val startedAt: Long?,
     val endsAt: Long?,
+    /** "Unlock without puck" was started; the lock ends at this time. */
+    val cooldownEndsAt: Long? = null,
+    /** What started the lock, e.g. "puck:3" or "timer". */
+    val source: String? = null,
 )
