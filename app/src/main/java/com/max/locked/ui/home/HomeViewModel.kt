@@ -6,7 +6,7 @@ import com.max.locked.data.BrickRepository
 import com.max.locked.data.ModeSummary
 import com.max.locked.data.PairedKeyEntity
 import com.max.locked.domain.canStartCooldown
-import com.max.locked.domain.lockingPuckId
+import com.max.locked.domain.canUnlockWithPuck
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,8 +19,11 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val isLocked: Boolean = false,
-    /** Name of the mode in use while locked. */
+    /** Names of the modes in use while locked. */
     val activeModeName: String? = null,
+    /** At least part of the lock comes from a schedule. */
+    val fromSchedule: Boolean = false,
+    val scheduleCount: Int = 0,
     /** A timed lock ends at this time. */
     val endsAt: Long? = null,
     /** "Unlock without puck" finishes at this time. */
@@ -49,22 +52,36 @@ class HomeViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<HomeUiState> =
-        combine(repository.policy, repository.modes, repository.pairedKeys, clock) { policy, modes, keys, now ->
+        combine(
+            repository.policy,
+            repository.modes,
+            repository.pairedKeys,
+            repository.schedules,
+            clock,
+        ) { policy, modes, keys, schedules, now ->
             val locked = policy.isActive(now)
-            val lockingId = lockingPuckId(policy.source)
-            val unlockers = when {
-                !locked -> emptyList()
-                lockingId != null -> keys.filter { it.id == lockingId }
-                else -> keys.filter { it.modeId == policy.modeId }
+            val manual = policy.manual
+            // Pucks that can end at least part of what's locked.
+            val unlockers = if (!locked) emptyList() else keys.filter { key ->
+                (manual != null && canUnlockWithPuck(manual.source, key.id, key.modeId, manual.modeId)) ||
+                    policy.schedules.any { it.modeId == key.modeId }
             }
+            val activeIds = policy.activeModeIds
+            val endsAt = policy.endsAt
             HomeUiState(
                 isLocked = locked,
-                activeModeName = if (locked) modes.firstOrNull { it.id == policy.modeId }?.name else null,
-                endsAt = if (locked) policy.endsAt else null,
+                activeModeName = if (locked) {
+                    modes.filter { it.id in activeIds }.joinToString(", ") { it.name }.ifEmpty { null }
+                } else {
+                    null
+                },
+                fromSchedule = locked && policy.schedules.isNotEmpty(),
+                scheduleCount = schedules.size,
+                endsAt = if (locked) endsAt else null,
                 // Only worth showing if it beats the timer.
                 cooldownEndsAt = policy.cooldownEndsAt
-                    ?.takeIf { locked && (policy.endsAt == null || it < policy.endsAt) },
-                canStartCooldown = canStartCooldown(locked, policy.endsAt, policy.cooldownEndsAt, now),
+                    ?.takeIf { locked && (endsAt == null || it < endsAt) },
+                canStartCooldown = canStartCooldown(locked, endsAt, policy.cooldownEndsAt, now),
                 unlockPuckNames = unlockers.map { it.name },
                 modes = modes,
                 pucks = keys,

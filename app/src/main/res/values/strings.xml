@@ -124,6 +124,36 @@
     <string name="mode_delete_body">Any pucks set to this mode will switch to Default.</string>
     <string name="mode_active_note">This mode is in use right now. Apps can be removed once you\'re unlocked.</string>
     <string name="save">Save</string>
+    <string name="ok">OK</string>
+    <string name="lock_for_end_time">End time</string>
+
+    <!-- Schedules -->
+    <string name="schedules_title">Schedules</string>
+    <plurals name="schedules_count">
+        <item quantity="one">%d schedule</item>
+        <item quantity="other">%d schedules</item>
+    </plurals>
+    <string name="schedules_empty">No schedules yet. A schedule locks a mode at the same time each day you choose.</string>
+    <string name="schedules_add">Add a schedule</string>
+    <string name="schedules_running_note">A schedule that\'s running can\'t be changed or switched off until it ends.</string>
+    <string name="schedule_running">running now</string>
+    <string name="schedule_range">%1$s – %2$s</string>
+    <string name="schedule_add_title">New schedule</string>
+    <string name="schedule_edit_title">Edit schedule</string>
+    <string name="schedule_days">Days</string>
+    <string name="schedule_starts">Starts</string>
+    <string name="schedule_ends">Ends</string>
+    <string name="schedule_overnight">Runs overnight and ends the next morning.</string>
+    <string name="schedule_same_time">Choose an end time that\'s different from the start.</string>
+    <string name="schedule_summary">Runs on: %1$s</string>
+    <string name="schedule_pick_days">Tap the days this should run.</string>
+    <string name="schedule_running_note">This schedule is running right now. It can be changed once it ends, or once a puck set to its mode ends it for today.</string>
+    <string name="schedule_delete_title">Delete this schedule?</string>
+    <string name="days_every_day">Every day</string>
+    <string name="days_weekdays">Weekdays</string>
+    <string name="days_weekends">Weekends</string>
+    <string name="home_active_mode_scheduled">Scheduled: %1$s</string>
+    <string name="tap_still_locked">That part is unlocked. Something else is still locked.</string>
 
     <!-- Puck modes -->
     <string name="puck_mode">Locks: %1$s</string>

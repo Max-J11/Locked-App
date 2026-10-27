@@ -14,8 +14,8 @@ import javax.inject.Inject
 
 data class ModesUiState(
     val modes: List<ModeSummary> = emptyList(),
-    /** The mode a lock is using right now, if any. */
-    val activeModeId: Long? = null,
+    /** Modes a lock or running schedule is using right now. */
+    val activeModeIds: Set<Long> = emptySet(),
 )
 
 @HiltViewModel
@@ -27,7 +27,7 @@ class ModesViewModel @Inject constructor(
         combine(repository.modes, repository.policy) { modes, policy ->
             ModesUiState(
                 modes = modes,
-                activeModeId = policy.modeId.takeIf { policy.isActive(System.currentTimeMillis()) },
+                activeModeIds = if (policy.isActive(System.currentTimeMillis())) policy.activeModeIds else emptySet(),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ModesUiState())
 

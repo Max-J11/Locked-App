@@ -26,6 +26,9 @@ import androidx.navigation.navArgument
 import com.max.locked.ui.apppicker.AppPickerScreen
 import com.max.locked.ui.apppicker.AppPickerViewModel
 import com.max.locked.ui.modes.ModesScreen
+import com.max.locked.ui.schedules.ScheduleEditScreen
+import com.max.locked.ui.schedules.ScheduleEditViewModel
+import com.max.locked.ui.schedules.SchedulesScreen
 import com.max.locked.ui.home.HomeScreen
 import com.max.locked.ui.pairing.PairingScreen
 import com.max.locked.ui.pucks.PucksScreen
@@ -55,6 +58,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenNotificationSettings = ::openNotificationAccessSettings,
                                 onModes = { nav.navigate(ROUTE_MODES) },
+                                onSchedules = { nav.navigate(ROUTE_SCHEDULES) },
                                 onPucks = { nav.navigate(ROUTE_PUCKS) },
                                 modifier = Modifier.padding(padding),
                             )
@@ -71,6 +75,21 @@ class MainActivity : ComponentActivity() {
                         arguments = listOf(navArgument(AppPickerViewModel.ARG_MODE_ID) { type = NavType.LongType }),
                     ) {
                         AppPickerScreen(onBack = { nav.popBackStack() })
+                    }
+                    composable(ROUTE_SCHEDULES) {
+                        SchedulesScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpen = { id -> nav.navigate("$ROUTE_SCHEDULE/$id") },
+                            onAdd = { nav.navigate("$ROUTE_SCHEDULE/0") },
+                        )
+                    }
+                    composable(
+                        route = "$ROUTE_SCHEDULE/{${ScheduleEditViewModel.ARG_SCHEDULE_ID}}",
+                        arguments = listOf(
+                            navArgument(ScheduleEditViewModel.ARG_SCHEDULE_ID) { type = NavType.LongType },
+                        ),
+                    ) {
+                        ScheduleEditScreen(onBack = { nav.popBackStack() })
                     }
                     composable(ROUTE_PUCKS) {
                         PucksScreen(
@@ -120,6 +139,8 @@ class MainActivity : ComponentActivity() {
         const val ROUTE_HOME = "home"
         const val ROUTE_MODES = "modes"
         const val ROUTE_MODE = "mode"
+        const val ROUTE_SCHEDULES = "schedules"
+        const val ROUTE_SCHEDULE = "schedule"
         const val ROUTE_PUCKS = "pucks"
         const val ROUTE_PAIR = "pair"
     }

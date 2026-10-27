@@ -1,5 +1,6 @@
 package com.max.locked.domain
 
+import com.max.locked.data.ManualLock
 import com.max.locked.data.Policy
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -16,12 +17,9 @@ class ShouldDismissNotificationTest {
         blockNotifications: Boolean = true,
         endsAt: Long? = null,
     ) = Policy(
-        isLocked = locked,
-        modeId = 1L,
-        startedAt = now - 1_000,
-        endsAt = endsAt,
+        manual = if (locked) ManualLock(modeId = 1L, startedAt = now - 1_000, endsAt = endsAt, source = null) else null,
         blockedPackages = setOf(instagram),
-        blockNotifications = blockNotifications,
+        notificationPackages = if (blockNotifications) setOf(instagram) else emptySet(),
     )
 
     @Test

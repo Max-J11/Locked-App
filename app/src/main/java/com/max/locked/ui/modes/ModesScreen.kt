@@ -64,7 +64,7 @@ fun ModesScreen(
                         val details = buildList {
                             add(pluralStringResource(R.plurals.mode_app_count, mode.appCount, mode.appCount))
                             if (mode.blockNotifications) add(stringResource(R.string.mode_hides_notifications))
-                            if (mode.id == state.activeModeId) add(stringResource(R.string.mode_in_use))
+                            if (mode.id in state.activeModeIds) add(stringResource(R.string.mode_in_use))
                         }
                         Text(details.joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
                     }

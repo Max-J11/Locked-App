@@ -71,15 +71,24 @@ class TapActivity : ComponentActivity() {
                     HapticFeedbackConstants.REJECT,
                 )
                 is TapResult.WrongMode -> feedback(
-                    result.modeName?.let { getString(R.string.tap_wrong_mode, it) }
-                        ?: getString(R.string.tap_wrong_mode_unnamed),
+                    if (result.modeNames.isEmpty()) {
+                        getString(R.string.tap_wrong_mode_unnamed)
+                    } else {
+                        getString(R.string.tap_wrong_mode, joinOr(result.modeNames))
+                    },
                     HapticFeedbackConstants.REJECT,
                 )
+                TapResult.StillLocked -> feedback(getString(R.string.tap_still_locked), HapticFeedbackConstants.CONFIRM)
             }
         }
     }
 
     private fun feedback(message: Int, haptic: Int) = feedback(getString(message), haptic)
+
+    /** "Work", "Work or Sleep", "Work, Sleep or Study". */
+    private fun joinOr(names: List<String>): String =
+        if (names.size == 1) names.single()
+        else getString(R.string.names_or, names.dropLast(1).joinToString(", "), names.last())
 
     /** Buzz once the window is attached (post waits for that), then toast and finish. */
     private fun feedback(message: String, haptic: Int) {

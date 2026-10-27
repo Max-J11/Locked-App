@@ -9,11 +9,18 @@ import com.max.locked.R
 import com.max.locked.data.BrickRepository
 import com.max.locked.data.Policy
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * Watches which app is in the foreground and sends the user home if the current [Policy] blocks it.
- * Reads the in-memory StateFlow only; never touches Room per event.
+ * Reads the in-memory policy only; never touches Room per event. Also re-checks the app on screen
+ * whenever the policy changes, so a schedule starting while a blocked app is open still blocks it.
  *
  * Known One UI quirk: if a blocked app is opened in pop-up view, HOME minimizes it to a
  * floating icon (systemui freeform_container_pointer_control_view) instead of closing it.
@@ -29,10 +36,26 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var lastForegroundPackage: String? = null
     private var lastBlockAtMs = 0L
 
+    private var scope: CoroutineScope? = null
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         overlay = BlockOverlay(this)
         Log.d(TAG, "service connected")
+        scope?.cancel()
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).also { s ->
+            s.launch { repository.policy.drop(1).collect { recheckForeground() } }
+        }
+    }
+
+    /** The policy changed (e.g. a schedule started): block the app already on screen if needed. */
+    private fun recheckForeground() {
+        val pkg = activeAppPackage() ?: return
+        if (pkg == packageName) return
+        if (repository.currentPolicy().isBlocked(pkg, System.currentTimeMillis())) {
+            Log.d(TAG, "policy changed while $pkg was open")
+            block(pkg)
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -50,7 +73,7 @@ class BlockerAccessibilityService : AccessibilityService() {
             lastForegroundPackage = pkg
         }
 
-        if (!repository.policy.value.isBlocked(pkg, System.currentTimeMillis())) return
+        if (!repository.currentPolicy().isBlocked(pkg, System.currentTimeMillis())) return
 
         // Blocked apps can send a late state event after we've already sent the user home.
         // Pressing HOME again on One UI jumps to the main home page, so confirm the app
@@ -98,6 +121,8 @@ class BlockerAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         Log.d(TAG, "service destroyed")
+        scope?.cancel()
+        scope = null
         if (::overlay.isInitialized) overlay.hide()
         super.onDestroy()
     }

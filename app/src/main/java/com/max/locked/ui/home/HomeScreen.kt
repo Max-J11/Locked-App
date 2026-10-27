@@ -38,6 +38,7 @@ fun HomeScreen(
     onOpenAccessibilitySettings: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onModes: () -> Unit,
+    onSchedules: () -> Unit,
     onPucks: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -57,7 +58,10 @@ fun HomeScreen(
         )
         state.activeModeName?.let { name ->
             Text(
-                text = stringResource(R.string.home_active_mode, name),
+                text = stringResource(
+                    if (state.fromSchedule) R.string.home_active_mode_scheduled else R.string.home_active_mode,
+                    name,
+                ),
                 style = MaterialTheme.typography.titleMedium,
             )
         }
@@ -102,6 +106,12 @@ fun HomeScreen(
             style = MaterialTheme.typography.bodyLarge,
         )
         TextButton(onClick = onModes) { Text(stringResource(R.string.modes_title)) }
+
+        Text(
+            text = pluralStringResource(R.plurals.schedules_count, state.scheduleCount, state.scheduleCount),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        TextButton(onClick = onSchedules) { Text(stringResource(R.string.schedules_title)) }
 
         Text(
             text = pluralStringResource(R.plurals.pucks_paired, state.puckCount, state.puckCount),

@@ -72,7 +72,7 @@ class AppPickerViewModel @Inject constructor(
             repository.mode(modeId),
             repository.policy,
         ) { apps, q, selected, mode, policy ->
-            val active = policy.isActive(System.currentTimeMillis()) && policy.modeId == modeId
+            val active = policy.isActive(System.currentTimeMillis()) && modeId in policy.activeModeIds
             val hideNotifications = mode?.blockNotifications == true
             val needle = q.trim()
             AppPickerUiState(

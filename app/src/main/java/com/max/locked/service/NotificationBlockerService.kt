@@ -52,7 +52,7 @@ class NotificationBlockerService : NotificationListenerService() {
     }
 
     private fun sweep() {
-        val policy = repository.policy.value
+        val policy = repository.currentPolicy()
         if (!policy.isActive(System.currentTimeMillis()) || !policy.blockNotifications) return
 
         val active = try {
@@ -68,7 +68,7 @@ class NotificationBlockerService : NotificationListenerService() {
 
     private fun dismissIfBlocked(sbn: StatusBarNotification): Boolean {
         val dismiss = shouldDismissNotification(
-            policy = repository.policy.value,
+            policy = repository.currentPolicy(),
             packageName = sbn.packageName,
             isOngoing = sbn.isOngoing || !sbn.isClearable,
             now = System.currentTimeMillis(),

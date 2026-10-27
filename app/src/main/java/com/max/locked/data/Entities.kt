@@ -73,3 +73,20 @@ data class ModeSummary(
     val blockNotifications: Boolean,
     val appCount: Int,
 )
+
+/**
+ * A repeating lock window. [days] is a bitmask, Monday = bit 0 ... Sunday = bit 6, of the days a
+ * window starts on. Minutes are after midnight. Not tied to [ModeEntity] by a foreign key:
+ * deleting a mode moves its schedules to Default instead.
+ */
+@Entity(tableName = "schedule", indices = [Index("modeId")])
+data class ScheduleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val modeId: Long,
+    val days: Int,
+    val startMinute: Int,
+    val endMinute: Int,
+    val enabled: Boolean = true,
+    /** A puck ended the window that ends at this time. */
+    val skippedUntil: Long? = null,
+)

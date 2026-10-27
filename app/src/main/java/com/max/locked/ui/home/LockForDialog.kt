@@ -14,17 +14,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -32,6 +30,7 @@ import com.max.locked.R
 import com.max.locked.data.BrickRepository
 import com.max.locked.data.ModeSummary
 import com.max.locked.data.PairedKeyEntity
+import com.max.locked.ui.common.TimeField
 import com.max.locked.ui.common.formatWhen
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -51,13 +50,7 @@ fun LockForDialog(
 ) {
     var minutes by rememberSaveable { mutableStateOf(60) }
     var modeId by rememberSaveable { mutableLongStateOf(BrickRepository.DEFAULT_MODE_ID) }
-    val context = LocalContext.current
-    val is24h = android.text.format.DateFormat.is24HourFormat(context)
-    val untilTime = rememberTimePickerState(
-        initialHour = (LocalTime.now().hour + 1) % 24,
-        initialMinute = 0,
-        is24Hour = is24h,
-    )
+    var untilMinute by rememberSaveable { mutableIntStateOf(((LocalTime.now().hour + 1) % 24) * 60) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -72,12 +65,17 @@ fun LockForDialog(
                     )
                 }
                 if (minutes == UNTIL_TIME) {
+                    TimeField(
+                        label = stringResource(R.string.lock_for_end_time),
+                        minute = untilMinute,
+                        onChange = { untilMinute = it },
+                        modifier = Modifier.padding(start = 36.dp),
+                    )
                     Text(
-                        stringResource(R.string.lock_for_ends, formatWhen(nextOccurrence(untilTime.hour, untilTime.minute))),
-                        style = MaterialTheme.typography.titleSmall,
+                        stringResource(R.string.lock_for_ends, formatWhen(nextOccurrence(untilMinute / 60, untilMinute % 60))),
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(start = 36.dp, bottom = 8.dp),
                     )
-                    TimeInput(state = untilTime)
                 }
                 if (modes.size > 1) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -102,7 +100,7 @@ fun LockForDialog(
             TextButton(onClick = {
                 val now = System.currentTimeMillis()
                 val endsAt = if (minutes == UNTIL_TIME) {
-                    nextOccurrence(untilTime.hour, untilTime.minute)
+                    nextOccurrence(untilMinute / 60, untilMinute % 60)
                 } else {
                     now + minutes * 60_000L
                 }
