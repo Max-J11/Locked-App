@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.max.locked.R
 import com.max.locked.ui.common.formatWhen
 import com.max.locked.domain.COOLDOWN_MILLIS
+import com.max.locked.domain.PASSES_PER_LOCK
 
 @Composable
 fun HomeScreen(
@@ -83,6 +84,16 @@ fun HomeScreen(
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )
+
+        if (state.isLocked) {
+            Text(
+                text = state.passEndsAt?.let { stringResource(R.string.home_pass_open, formatWhen(it)) }
+                    ?: pluralStringResource(R.plurals.home_passes_left, state.passesLeft, state.passesLeft, PASSES_PER_LOCK),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
         if (!state.isLocked) {

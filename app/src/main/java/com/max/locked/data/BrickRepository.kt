@@ -9,7 +9,10 @@ import com.max.locked.domain.ModeRule
 import com.max.locked.domain.SOURCE_TIMER
 import com.max.locked.domain.ScheduleRule
 import com.max.locked.domain.activePolicy
+import com.max.locked.domain.PASSES_PER_LOCK
+import com.max.locked.domain.PASS_MILLIS
 import com.max.locked.domain.canStartCooldown
+import com.max.locked.domain.canUsePass
 import com.max.locked.domain.canUnlockWithPuck
 import com.max.locked.domain.lockingPuckId
 import com.max.locked.domain.puckSource
@@ -323,6 +326,34 @@ class BrickRepository @Inject constructor(
         Log.d(TAG, "unlocked (source=$source)")
     }
 
+    // --- Passes ---------------------------------------------------------------------------
+
+    /**
+     * Opens [packageName] for [PASS_MILLIS] without ending the lock. Uses one of the
+     * [PASSES_PER_LOCK] passes for this locked stretch. Using a pass for another app replaces the
+     * running one. Returns false if refused (not blocked, or none left).
+     */
+    suspend fun usePass(packageName: String): Boolean = stateMutex.withLock {
+        val now = System.currentTimeMillis()
+        val p = policyFromDb(now)
+        if (!canUsePass(p, packageName, now)) {
+            Log.d(TAG, "pass refused for $packageName (left=${p.passesLeft})")
+            return@withLock false
+        }
+        val current = stateDao.get() ?: BrickStateEntity()
+        val usedBefore = PASSES_PER_LOCK - p.passesLeft
+        stateDao.upsert(
+            current.copy(
+                passPackage = packageName,
+                passEndsAt = now + PASS_MILLIS,
+                passesUsed = usedBefore + 1,
+                passSessionStart = p.lockedSince,
+            ),
+        )
+        Log.d(TAG, "pass used for $packageName (${p.passesLeft - 1} left)")
+        true
+    }
+
     // --- Schedules ------------------------------------------------------------------------
 
     val schedules: Flow<List<ScheduleEntity>> = scheduleDao.observeAll()
@@ -436,6 +467,10 @@ class BrickRepository @Inject constructor(
         endsAt = endsAt,
         cooldownEndsAt = cooldownEndsAt,
         source = source,
+        passPackage = passPackage,
+        passEndsAt = passEndsAt,
+        passesUsed = passesUsed,
+        passSessionStart = passSessionStart,
     )
 
     companion object {

@@ -60,6 +60,8 @@ data class BrickStateEntity(
     val passPackage: String? = null,
     val passEndsAt: Long? = null,
     val passesUsed: Int = 0,
+    /** When the locked stretch that [passesUsed] counts began. */
+    val passSessionStart: Long? = null,
 ) {
     companion object {
         const val SINGLE_ROW_ID = 0

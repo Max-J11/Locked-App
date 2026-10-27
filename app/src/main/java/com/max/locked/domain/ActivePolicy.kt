@@ -48,14 +48,22 @@ fun activePolicy(
     val activeSchedules = enabled.mapNotNull { s ->
         val occ = s.occurrenceAt(now, zone) ?: return@mapNotNull null
         if (s.isSkipped(occ) || endedByCooldown(occ, cooldown, now)) null
-        else ActiveSchedule(s.id, s.modeId, occ.end)
+        else ActiveSchedule(s.id, s.modeId, occ.start, occ.end)
     }
 
+    val locked = manual != null || activeSchedules.isNotEmpty()
+
+    // Passes are counted per locked stretch. A pass or count from an earlier stretch doesn't carry over.
+    val lockedSince = if (!locked) null else
+        (listOfNotNull(manual?.let { it.startedAt ?: now }) + activeSchedules.map { it.startedAt }).min()
+    val sameStretch = lockedSince != null && state?.passSessionStart == lockedSince
+    val passEndsAt = state?.passEndsAt?.takeIf { sameStretch && state.passPackage != null && it > now }
+
     val nextChange = (
-        listOfNotNull(manual?.endsAt, cooldown) + enabled.flatMap { it.boundariesAfter(now, zone) }
+        listOfNotNull(manual?.endsAt, cooldown, passEndsAt) + enabled.flatMap { it.boundariesAfter(now, zone) }
         ).filter { it > now }.minOrNull()
 
-    if (manual == null && activeSchedules.isEmpty()) {
+    if (!locked) {
         return Policy.UNLOCKED.copy(nextChange = nextChange)
     }
 
@@ -70,6 +78,10 @@ fun activePolicy(
         notificationPackages = activeModes.filter { it.blockNotifications }.flatMap { it.apps }.toSet() - neverBlock,
         cooldownEndsAt = cooldown?.takeIf { it > now },
         nextChange = nextChange,
+        passPackage = state?.passPackage?.takeIf { passEndsAt != null },
+        passEndsAt = passEndsAt,
+        passesLeft = (PASSES_PER_LOCK - if (sameStretch) state!!.passesUsed else 0).coerceAtLeast(0),
+        lockedSince = lockedSince,
     )
 }
 

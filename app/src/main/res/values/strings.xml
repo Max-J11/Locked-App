@@ -18,6 +18,10 @@
     <string name="overlay_message">%1$s is paused right now.</string>
     <string name="overlay_fallback_app_name">This app</string>
     <string name="overlay_ok">OK</string>
+    <plurals name="overlay_use_pass">
+        <item quantity="one">Use a pass (%1$d min) · %2$d left</item>
+        <item quantity="other">Use a pass (%1$d min) · %2$d left</item>
+    </plurals>
 
     <!-- Home screen -->
     <string name="service_on">Blocker is on</string>
@@ -35,6 +39,11 @@
     <string name="home_hint_unlock">Tap your puck to unlock.</string>
     <string name="home_hint_unlock_with">Tap %1$s to unlock.</string>
     <string name="home_until">Until %1$s</string>
+    <string name="home_pass_open">A pass is open until %1$s.</string>
+    <plurals name="home_passes_left">
+        <item quantity="one">%1$d of %2$d passes left</item>
+        <item quantity="other">%1$d of %2$d passes left</item>
+    </plurals>
     <string name="home_hint_no_puck">No puck is set to this mode, so it ends on its own.</string>
     <string name="names_or">%1$s or %2$s</string>
     <string name="when_tomorrow">tomorrow at %1$s</string>

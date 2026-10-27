@@ -15,9 +15,11 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.max.locked.R
+import com.max.locked.domain.PASS_MILLIS
 
 /**
- * A calm full-screen message shown after a blocked app is closed.
+ * A calm full-screen message shown after a blocked app is closed, with an optional
+ * "Use a pass" button.
  *
  * Uses TYPE_ACCESSIBILITY_OVERLAY, so no "display over other apps" permission is needed.
  * Plain Views for now, because Compose inside a service needs extra lifecycle setup.
@@ -30,22 +32,24 @@ class BlockOverlay(private val service: AccessibilityService) {
 
     private var view: View? = null
 
-    fun show(appName: String) {
-        handler.removeCallbacks(autoHide)
-        view?.findViewWithTag<TextView>(MESSAGE_TAG)?.text =
-            service.getString(R.string.overlay_message, appName)
-        if (view == null) {
-            val v = buildView(appName)
-            try {
-                windowManager.addView(v, layoutParams())
-                view = v
-                Log.d(TAG, "overlay shown")
-            } catch (e: Exception) {
-                Log.d(TAG, "overlay add failed: $e")
-                return
-            }
+    /**
+     * Shows the message for [appName]. If [passesLeft] > 0, also offers a pass; tapping it calls
+     * [onUsePass] and hides the overlay. Stays up longer when a pass is offered, so there's time
+     * to tap it.
+     */
+    fun show(appName: String, passesLeft: Int = 0, onUsePass: (() -> Unit)? = null) {
+        hide()
+        val offerPass = passesLeft > 0 && onUsePass != null
+        val v = buildView(appName, if (offerPass) passesLeft else 0, onUsePass)
+        try {
+            windowManager.addView(v, layoutParams())
+            view = v
+            Log.d(TAG, "overlay shown (pass offered=$offerPass)")
+        } catch (e: Exception) {
+            Log.d(TAG, "overlay add failed: $e")
+            return
         }
-        handler.postDelayed(autoHide, AUTO_HIDE_MS)
+        handler.postDelayed(autoHide, if (offerPass) AUTO_HIDE_WITH_PASS_MS else AUTO_HIDE_MS)
     }
 
     fun hide() {
@@ -69,7 +73,7 @@ class BlockOverlay(private val service: AccessibilityService) {
         PixelFormat.TRANSLUCENT,
     )
 
-    private fun buildView(appName: String): View {
+    private fun buildView(appName: String, passesLeft: Int, onUsePass: (() -> Unit)?): View {
         val ctx = service
         fun dp(value: Int) = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), ctx.resources.displayMetrics,
@@ -83,7 +87,6 @@ class BlockOverlay(private val service: AccessibilityService) {
         }
         val message = TextView(ctx).apply {
             text = ctx.getString(R.string.overlay_message, appName)
-            tag = MESSAGE_TAG
             setTextColor(Color.argb(220, 255, 255, 255))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             gravity = Gravity.CENTER
@@ -100,7 +103,24 @@ class BlockOverlay(private val service: AccessibilityService) {
             setPadding(dp(32), 0, dp(32), 0)
             addView(title)
             addView(message)
-            addView(ok, LinearLayout.LayoutParams(dp(160), LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(ok, LinearLayout.LayoutParams(dp(220), LinearLayout.LayoutParams.WRAP_CONTENT))
+            if (passesLeft > 0 && onUsePass != null) {
+                val minutes = (PASS_MILLIS / 60_000).toInt()
+                val pass = Button(ctx).apply {
+                    text = ctx.resources.getQuantityString(R.plurals.overlay_use_pass, passesLeft, minutes, passesLeft)
+                    isAllCaps = false
+                    setOnClickListener {
+                        hide()
+                        onUsePass()
+                    }
+                }
+                addView(
+                    pass,
+                    LinearLayout.LayoutParams(dp(220), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        topMargin = dp(12)
+                    },
+                )
+            }
         }
 
         return FrameLayout(ctx).apply {
@@ -121,6 +141,6 @@ class BlockOverlay(private val service: AccessibilityService) {
     private companion object {
         const val TAG = "Locked"
         const val AUTO_HIDE_MS = 3_000L
-        const val MESSAGE_TAG = "overlay_message"
+        const val AUTO_HIDE_WITH_PASS_MS = 6_000L
     }
 }

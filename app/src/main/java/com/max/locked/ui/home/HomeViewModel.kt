@@ -24,6 +24,9 @@ data class HomeUiState(
     /** At least part of the lock comes from a schedule. */
     val fromSchedule: Boolean = false,
     val scheduleCount: Int = 0,
+    val passesLeft: Int = 0,
+    /** A pass is open until this time. */
+    val passEndsAt: Long? = null,
     /** A timed lock ends at this time. */
     val endsAt: Long? = null,
     /** "Unlock without puck" finishes at this time. */
@@ -77,6 +80,8 @@ class HomeViewModel @Inject constructor(
                 },
                 fromSchedule = locked && policy.schedules.isNotEmpty(),
                 scheduleCount = schedules.size,
+                passesLeft = if (locked) policy.passesLeft else 0,
+                passEndsAt = if (locked) policy.passEndsAt?.takeIf { it > now } else null,
                 endsAt = if (locked) endsAt else null,
                 // Only worth showing if it beats the timer.
                 cooldownEndsAt = policy.cooldownEndsAt

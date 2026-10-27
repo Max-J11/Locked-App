@@ -1,6 +1,7 @@
 package com.max.locked.service
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -14,6 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -106,7 +109,29 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         Log.d(TAG, "blocked $pkg")
         performGlobalAction(GLOBAL_ACTION_HOME)
-        overlay.show(appLabel(pkg))
+        val passesLeft = repository.currentPolicy().passesLeft
+        overlay.show(appLabel(pkg), passesLeft, onUsePass = { usePassAndReopen(pkg) })
+    }
+
+    /** Uses a pass, waits until the policy shows it (so the app isn't blocked again), then reopens the app. */
+    private fun usePassAndReopen(pkg: String) {
+        scope?.launch {
+            if (!repository.usePass(pkg)) return@launch
+            withTimeoutOrNull(PASS_READY_TIMEOUT_MS) {
+                repository.policy.first { it.hasPass(pkg, System.currentTimeMillis()) }
+            }
+            val launch = packageManager.getLaunchIntentForPackage(pkg)
+                ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (launch == null) {
+                Log.d(TAG, "pass used but $pkg has no launch intent")
+                return@launch
+            }
+            try {
+                startActivity(launch)
+            } catch (e: Exception) {
+                Log.d(TAG, "couldn't reopen $pkg after pass: $e")
+            }
+        }
     }
 
     private fun appLabel(pkg: String): String = try {
@@ -130,5 +155,6 @@ class BlockerAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "Locked"
         private const val DEBOUNCE_MS = 750L
+        private const val PASS_READY_TIMEOUT_MS = 2_000L
     }
 }

@@ -14,6 +14,7 @@ data class ManualLock(
 data class ActiveSchedule(
     val scheduleId: Long,
     val modeId: Long,
+    val startedAt: Long,
     val endsAt: Long,
 )
 
@@ -31,8 +32,14 @@ data class Policy(
     val notificationPackages: Set<String> = emptySet(),
     /** "Unlock without puck" is counting down to this time. */
     val cooldownEndsAt: Long? = null,
-    /** The next moment the policy changes on its own: a timer, wait or schedule window starting or ending. */
+    /** The next moment the policy changes on its own: a timer, wait, pass or schedule window starting or ending. */
     val nextChange: Long? = null,
+    /** An app opened with a pass, until [passEndsAt]. */
+    val passPackage: String? = null,
+    val passEndsAt: Long? = null,
+    val passesLeft: Int = 0,
+    /** When the current locked stretch began. Passes are counted per stretch. */
+    val lockedSince: Long? = null,
 ) {
     val isLocked: Boolean get() = manual != null || schedules.isNotEmpty()
 
@@ -61,7 +68,11 @@ data class Policy(
     }
 
     fun isBlocked(packageName: String, now: Long): Boolean =
-        isActive(now) && packageName in blockedPackages
+        isActive(now) && packageName in blockedPackages && !hasPass(packageName, now)
+
+    /** This app is open on a pass right now. */
+    fun hasPass(packageName: String, now: Long): Boolean =
+        packageName == passPackage && passEndsAt != null && now < passEndsAt
 
     fun nextChangeAt(now: Long): Long? = nextChange?.takeIf { it > now }
 
