@@ -243,4 +243,9 @@
     <string name="stats_clear_confirm">Clear</string>
     <string name="duration_hm">%1$d h %2$d m</string>
     <string name="duration_m">%1$d m</string>
+
+    <!-- Home-screen widget -->
+    <string name="widget_description">Shows whether you\'re locked, and for how long.</string>
+    <string name="widget_locked_for">Locked for %s</string>
+    <string name="widget_mode_until">%1$s · until %2$s</string>
 </resources>
