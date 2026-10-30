@@ -11,7 +11,12 @@ import com.max.locked.domain.ScheduleRule
 import com.max.locked.domain.activePolicy
 import com.max.locked.domain.PASSES_PER_LOCK
 import com.max.locked.domain.PASS_MILLIS
+import com.max.locked.domain.canChangePucks
+import com.max.locked.domain.canChangeSchedule
+import com.max.locked.domain.canDeleteMode
+import com.max.locked.domain.canRemoveApp
 import com.max.locked.domain.canStartCooldown
+import com.max.locked.domain.canStopHidingNotifications
 import com.max.locked.domain.canUsePass
 import com.max.locked.domain.canUnlockWithPuck
 import com.max.locked.domain.lockingPuckId
@@ -138,7 +143,17 @@ class BrickRepository @Inject constructor(
         }
         .stateIn(scope, SharingStarted.Eagerly, Policy.UNLOCKED)
 
-    private fun isLocked(now: Long = System.currentTimeMillis()) = currentPolicy(now).isActive(now)
+    /**
+     * The policy from stored state, for "only stricter while locked" checks. Reads Room rather than
+     * [currentPolicy], which is empty for a moment after the process starts.
+     */
+    private suspend fun storedPolicy(): Pair<Policy, Long> {
+        val now = System.currentTimeMillis()
+        return policyFromDb(now) to now
+    }
+
+    /** True if anything is locked right now (manual lock or schedule), from stored state. */
+    suspend fun isLockedNow(): Boolean = storedPolicy().let { (p, now) -> p.isActive(now) }
 
     // --- Modes ----------------------------------------------------------------------------
 
@@ -149,12 +164,6 @@ class BrickRepository @Inject constructor(
 
     fun selectedApps(modeId: Long): Flow<Set<String>> =
         modeAppDao.observePackages(modeId).map { it.toSet() }
-
-    /** True while a lock or running schedule uses this mode. Such a mode can only get stricter. */
-    fun isModeActive(modeId: Long, now: Long = System.currentTimeMillis()): Boolean {
-        val p = currentPolicy(now)
-        return p.isActive(now) && modeId in p.activeModeIds
-    }
 
     suspend fun createMode(name: String): Long {
         val id = modeDao.insert(ModeEntity(name = name.trim()))
@@ -167,11 +176,12 @@ class BrickRepository @Inject constructor(
     }
 
     /**
-     * Deletes a mode. The Default mode and modes in use can't be deleted. Pucks and schedules
-     * set to the deleted mode switch to Default. Returns false if refused.
+     * Deletes a mode. Refused for Default and while anything is locked ([canDeleteMode]). Pucks and
+     * schedules set to the deleted mode switch to Default. Returns false if refused.
      */
     suspend fun deleteMode(id: Long): Boolean {
-        if (id == DEFAULT_MODE_ID || isModeActive(id)) {
+        val (p, now) = storedPolicy()
+        if (!canDeleteMode(p, id, now)) {
             Log.d(TAG, "refused to delete mode $id")
             return false
         }
@@ -186,7 +196,8 @@ class BrickRepository @Inject constructor(
 
     /** Turning notification hiding on is always allowed; turning it off is refused while the mode is in use. */
     suspend fun setBlockNotifications(modeId: Long, on: Boolean): Boolean {
-        if (!on && isModeActive(modeId)) {
+        val (p, now) = storedPolicy()
+        if (!on && !canStopHidingNotifications(p, modeId, now)) {
             Log.d(TAG, "refused to turn off notification hiding for active mode $modeId")
             return false
         }
@@ -361,9 +372,9 @@ class BrickRepository @Inject constructor(
     suspend fun getSchedule(id: Long): ScheduleEntity? = scheduleDao.get(id)
 
     /** A schedule whose window is running now (and wasn't ended early) can't be changed. */
-    fun isScheduleRunning(id: Long, now: Long = System.currentTimeMillis()): Boolean {
-        val p = currentPolicy(now)
-        return p.isActive(now) && p.schedules.any { it.scheduleId == id }
+    private suspend fun isScheduleRunning(id: Long): Boolean {
+        val (p, now) = storedPolicy()
+        return !canChangeSchedule(p, id, now)
     }
 
     /** Adds or updates a schedule. Refused for a schedule that's running. Returns false if refused. */
@@ -426,7 +437,8 @@ class BrickRepository @Inject constructor(
 
     /** Pucks can't be deleted while locked (settings only get stricter). Returns false if refused. */
     suspend fun deletePairedKey(id: Long): Boolean {
-        if (isLocked()) {
+        val (p, now) = storedPolicy()
+        if (!canChangePucks(p, now)) {
             Log.d(TAG, "refused to delete puck $id while locked")
             return false
         }
@@ -436,7 +448,8 @@ class BrickRepository @Inject constructor(
 
     /** Which mode a puck locks. Frozen while locked: moving a puck onto a running mode would let it unlock. */
     suspend fun setPuckMode(keyId: Long, modeId: Long): Boolean {
-        if (isLocked()) {
+        val (p, now) = storedPolicy()
+        if (!canChangePucks(p, now)) {
             Log.d(TAG, "refused to change puck $keyId's mode while locked")
             return false
         }
@@ -452,7 +465,8 @@ class BrickRepository @Inject constructor(
 
     /** Only stricter while locked: apps can't be removed from a mode in use. Returns false if refused. */
     suspend fun removeApp(modeId: Long, packageName: String): Boolean {
-        if (isModeActive(modeId)) {
+        val (p, now) = storedPolicy()
+        if (!canRemoveApp(p, modeId, now)) {
             Log.d(TAG, "refused to remove $packageName from active mode $modeId")
             return false
         }

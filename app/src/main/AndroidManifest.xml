@@ -3,12 +3,15 @@
 
     <!-- Normal permission, granted at install with no prompt. -->
     <uses-permission android:name="android.permission.NFC" />
+    <!-- Runtime permission, allowed from the setup checklist: lets Locked say when the blocker is off. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature
         android:name="android.hardware.nfc"
         android:required="true" />
 
     <!-- Package visibility (not a permission): lets the app picker list launcher apps and
-         lets NeverBlockList find the default home, clock and settings apps. -->
+         lets NeverBlockList find the default home, clock and settings apps, and lets the setup
+         checklist check that Locked's notification-access page exists before opening it. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -23,6 +26,9 @@
         </intent>
         <intent>
             <action android:name="android.settings.SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.NOTIFICATION_LISTENER_DETAIL_SETTINGS" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />

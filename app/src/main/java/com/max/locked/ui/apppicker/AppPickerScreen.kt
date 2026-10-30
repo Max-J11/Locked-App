@@ -66,7 +66,7 @@ fun AppPickerScreen(
                 actions = {
                     TextButton(onClick = { renaming = true }) { Text(stringResource(R.string.mode_rename)) }
                     if (!state.isDefaultMode) {
-                        TextButton(onClick = { confirmDelete = true }, enabled = !state.modeActive) {
+                        TextButton(onClick = { confirmDelete = true }, enabled = state.canDelete) {
                             Text(stringResource(R.string.mode_delete))
                         }
                     }

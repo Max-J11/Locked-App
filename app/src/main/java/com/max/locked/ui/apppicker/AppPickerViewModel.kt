@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.max.locked.domain.canDeleteMode
+import com.max.locked.domain.isModeInUse
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -44,6 +46,8 @@ data class AppPickerUiState(
     val isDefaultMode: Boolean = true,
     /** A lock is in effect using this mode: settings here can only get stricter. */
     val modeActive: Boolean = false,
+    /** Modes can only be deleted while nothing is locked. */
+    val canDelete: Boolean = false,
     val query: String = "",
     val apps: List<AppItem> = emptyList(),
     val hideNotifications: Boolean = false,
@@ -72,7 +76,8 @@ class AppPickerViewModel @Inject constructor(
             repository.mode(modeId),
             repository.policy,
         ) { apps, q, selected, mode, policy ->
-            val active = policy.isActive(System.currentTimeMillis()) && modeId in policy.activeModeIds
+            val now = System.currentTimeMillis()
+            val active = isModeInUse(policy, modeId, now)
             val hideNotifications = mode?.blockNotifications == true
             val needle = q.trim()
             AppPickerUiState(
@@ -80,6 +85,7 @@ class AppPickerViewModel @Inject constructor(
                 modeName = mode?.name.orEmpty(),
                 isDefaultMode = modeId == BrickRepository.DEFAULT_MODE_ID,
                 modeActive = active,
+                canDelete = canDeleteMode(policy, modeId, now),
                 query = q,
                 apps = apps.orEmpty()
                     .filter { needle.isEmpty() || it.label.contains(needle, ignoreCase = true) }

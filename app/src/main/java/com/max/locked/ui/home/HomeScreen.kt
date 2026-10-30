@@ -1,5 +1,7 @@
 package com.max.locked.ui.home
 
+import android.content.Intent
+import com.max.locked.service.SetupStatus
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -34,10 +36,8 @@ import com.max.locked.domain.PASSES_PER_LOCK
 
 @Composable
 fun HomeScreen(
-    serviceEnabled: Boolean,
-    notificationAccess: Boolean,
-    onOpenAccessibilitySettings: () -> Unit,
-    onOpenNotificationSettings: () -> Unit,
+    setup: SetupStatus,
+    onOpenSettings: (Intent) -> Unit,
     onModes: () -> Unit,
     onSchedules: () -> Unit,
     onPucks: () -> Unit,
@@ -53,6 +53,10 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (!setup.allDone) {
+            SetupCard(setup, onOpenSettings)
+            Spacer(Modifier.height(32.dp))
+        }
         Text(
             text = stringResource(if (state.isLocked) R.string.status_locked else R.string.status_unlocked),
             style = MaterialTheme.typography.displaySmall,
@@ -129,24 +133,6 @@ fun HomeScreen(
             style = MaterialTheme.typography.bodyLarge,
         )
         TextButton(onClick = onPucks) { Text(stringResource(R.string.manage_pucks)) }
-
-        Spacer(Modifier.height(40.dp))
-        Text(
-            text = stringResource(if (serviceEnabled) R.string.service_on else R.string.service_off),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        OutlinedButton(onClick = onOpenAccessibilitySettings, modifier = Modifier.padding(top = 8.dp)) {
-            Text(stringResource(R.string.open_accessibility_settings))
-        }
-
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = stringResource(if (notificationAccess) R.string.notifications_on else R.string.notifications_off),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        OutlinedButton(onClick = onOpenNotificationSettings, modifier = Modifier.padding(top = 8.dp)) {
-            Text(stringResource(R.string.open_notification_settings))
-        }
     }
 
     if (choosingLockFor) {

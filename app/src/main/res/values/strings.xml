@@ -7,9 +7,6 @@
 
     <!-- Notification listener -->
     <string name="notification_listener_label">Locked</string>
-    <string name="notifications_on">Notification access is on</string>
-    <string name="notifications_off">Notification access is off</string>
-    <string name="open_notification_settings">Open notification access</string>
     <string name="hide_notifications">Also hide notifications from these apps</string>
     <string name="hide_notifications_locked_note">This stays on until you unlock.</string>
 
@@ -24,9 +21,6 @@
     </plurals>
 
     <!-- Home screen -->
-    <string name="service_on">Blocker is on</string>
-    <string name="service_off">Blocker is off</string>
-    <string name="open_accessibility_settings">Open accessibility settings</string>
     <string name="status_locked">Locked</string>
     <string name="status_unlocked">Unlocked</string>
     <plurals name="modes_count">
@@ -171,4 +165,23 @@
     <!-- App picker -->
     <string name="app_picker_search">Search apps</string>
     <string name="back">Back</string>
+
+
+    <!-- Setup checklist -->
+    <string name="setup_title">Finish setting up</string>
+    <string name="setup_blocker">Turn on the blocker so locked apps stay closed. In Accessibility, tap Installed apps, then Locked.</string>
+    <string name="setup_blocker_hint">If the switch is greyed out, open App info, tap ⋮, then Allow restricted settings.</string>
+    <string name="setup_notification_access">Allow notification access so notifications from locked apps can be hidden.</string>
+    <string name="setup_notifications">Allow notifications so Locked can tell you if the blocker turns off.</string>
+    <string name="setup_battery">Set battery use to Unrestricted so Locked keeps working in the background. In App info, tap Battery, then Unrestricted.</string>
+    <string name="setup_nfc">Turn on NFC so your pucks can be read.</string>
+    <string name="setup_turn_on">Turn on</string>
+    <string name="setup_allow">Allow</string>
+    <string name="setup_app_info">App info</string>
+
+    <!-- Blocker reminder -->
+    <string name="health_channel">Blocker reminders</string>
+    <string name="health_channel_description">Lets you know if the blocker turns off while something is locked.</string>
+    <string name="health_title">Locked\'s blocker is off</string>
+    <string name="health_text">Tap to open Accessibility, then Installed apps › Locked.</string>
 </resources>

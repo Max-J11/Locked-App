@@ -1,13 +1,9 @@
 package com.max.locked
 
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.app.NotificationManager
-import android.content.ActivityNotFoundException
-import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
-import android.view.accessibility.AccessibilityManager
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,8 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.max.locked.service.BlockerAccessibilityService
-import com.max.locked.service.NotificationBlockerService
+import com.max.locked.service.SetupStatus
+import com.max.locked.service.SystemStatus
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.max.locked.ui.apppicker.AppPickerScreen
@@ -38,8 +34,8 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val serviceEnabled = mutableStateOf(false)
-    private val notificationAccess = mutableStateOf(false)
+    /** Starts as "all done" so the checklist doesn't flash before the first real read. */
+    private val setupStatus = mutableStateOf(SetupStatus())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,12 +47,8 @@ class MainActivity : ComponentActivity() {
                     composable(ROUTE_HOME) {
                         Scaffold(Modifier.fillMaxSize()) { padding ->
                             HomeScreen(
-                                serviceEnabled = serviceEnabled.value,
-                                notificationAccess = notificationAccess.value,
-                                onOpenAccessibilitySettings = {
-                                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                                },
-                                onOpenNotificationSettings = ::openNotificationAccessSettings,
+                                setup = setupStatus.value,
+                                onOpenSettings = ::openSettings,
                                 onModes = { nav.navigate(ROUTE_MODES) },
                                 onSchedules = { nav.navigate(ROUTE_SCHEDULES) },
                                 onPucks = { nav.navigate(ROUTE_PUCKS) },
@@ -107,35 +99,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        serviceEnabled.value = isBlockerEnabled()
-        notificationAccess.value = getSystemService(NotificationManager::class.java)
-            .isNotificationListenerAccessGranted(listenerComponent)
+        // Settings are changed outside the app, so re-read them each time Locked comes back.
+        setupStatus.value = SystemStatus.setupStatus(this)
     }
 
-    private val listenerComponent: ComponentName
-        get() = ComponentName(this, NotificationBlockerService::class.java)
-
-    /** Opens Locked's own notification-access page, falling back to the full list. */
-    private fun openNotificationAccessSettings() {
-        val detail = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
-            .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, listenerComponent.flattenToString())
+    private fun openSettings(intent: Intent) {
         try {
-            startActivity(detail)
-        } catch (e: ActivityNotFoundException) {
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            startActivity(intent)
+        } catch (e: Exception) {
+            // Missing page, or one Settings refuses to open for us (SecurityException).
+            Log.d(TAG, "couldn't open ${intent.action}: $e")
+            startActivity(Intent(Settings.ACTION_SETTINGS))
         }
     }
 
-    private fun isBlockerEnabled(): Boolean {
-        val am = getSystemService(AccessibilityManager::class.java)
-        return am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-            .any {
-                it.resolveInfo.serviceInfo.packageName == packageName &&
-                    it.resolveInfo.serviceInfo.name == BlockerAccessibilityService::class.java.name
-            }
-    }
-
     private companion object {
+        const val TAG = "Locked"
         const val ROUTE_HOME = "home"
         const val ROUTE_MODES = "modes"
         const val ROUTE_MODE = "mode"
