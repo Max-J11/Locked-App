@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -137,6 +138,15 @@ private fun StepContent(state: PairingUiState, viewModel: PairingViewModel, onDo
             Spacer(Modifier.height(24.dp))
             Message(stringResource(R.string.pairing_writing))
         }
+        is PairingStep.FoundExisting -> {
+            Message(stringResource(R.string.pairing_found_existing))
+            Spacer(Modifier.height(24.dp))
+            Button(onClick = viewModel::useExisting) { Text(stringResource(R.string.pairing_use_existing)) }
+            Note(stringResource(R.string.pairing_use_existing_note))
+            Spacer(Modifier.height(16.dp))
+            OutlinedButton(onClick = viewModel::writeNewKey) { Text(stringResource(R.string.pairing_write_new)) }
+            Note(stringResource(R.string.pairing_write_new_note))
+        }
         is PairingStep.Done -> {
             Message(stringResource(R.string.pairing_done, step.name))
             Spacer(Modifier.height(16.dp))
@@ -153,6 +163,17 @@ private fun StepContent(state: PairingUiState, viewModel: PairingViewModel, onDo
 @Composable
 private fun Message(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+}
+
+@Composable
+private fun Note(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(top = 4.dp),
+    )
 }
 
 private fun errorText(error: WriteError): Int = when (error) {

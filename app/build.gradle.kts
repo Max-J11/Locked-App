@@ -22,11 +22,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Release signing comes from ~/.gradle/gradle.properties (LOCKED_*), never from the repo.
+    // Without those properties the release build is simply left unsigned.
+    val storeFilePath = providers.gradleProperty("LOCKED_STORE_FILE").orNull
+    val releaseSigning = storeFilePath?.let {
+        signingConfigs.create("release") {
+            storeFile = file(it)
+            storePassword = providers.gradleProperty("LOCKED_STORE_PASSWORD").get()
+            keyAlias = providers.gradleProperty("LOCKED_KEY_ALIAS").get()
+            keyPassword = providers.gradleProperty("LOCKED_KEY_PASSWORD").get()
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = releaseSigning
+            // No R8 shrinking: the partial "library packages only" setup crashed on start
+            // (IllegalAccessError in kotlin.sequences). Size doesn't matter for a sideloaded app, and
+            // this way release runs exactly the code tested in debug builds.
             optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                enable = false
             }
         }
     }

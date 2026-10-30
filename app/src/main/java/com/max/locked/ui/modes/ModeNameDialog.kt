@@ -14,7 +14,7 @@ import com.max.locked.R
 
 const val MODE_NAME_MAX = 30
 
-/** Asks for a mode name. Used for both adding and renaming. */
+/** Asks for a name. Used for adding and renaming modes, and renaming pucks. */
 @Composable
 fun ModeNameDialog(
     title: String,

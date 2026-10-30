@@ -35,6 +35,10 @@ class PucksViewModel @Inject constructor(
         viewModelScope.launch { repository.deletePairedKey(id) }
     }
 
+    fun rename(id: Long, name: String) {
+        viewModelScope.launch { repository.renamePuck(id, name) }
+    }
+
     fun setMode(keyId: Long, modeId: Long) {
         viewModelScope.launch { repository.setPuckMode(keyId, modeId) }
     }

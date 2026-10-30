@@ -37,6 +37,15 @@ object TagWriter {
         NdefRecord.createApplicationRecord(context.packageName),
     )
 
+    /**
+     * The Locked key already on [tag], if any, without writing. Uses the message Android read when
+     * the tag was discovered, so no extra I/O. A puck paired on another phone has one; using it as
+     * is lets both phones accept the same puck.
+     */
+    fun readKey(tag: Tag): String? =
+        Ndef.get(tag)?.cachedNdefMessage?.records
+            ?.firstNotNullOfOrNull { record -> record.toUri()?.toString()?.let(KeyUri::parse) }
+
     fun write(tag: Tag, message: NdefMessage): WriteResult {
         val uid = tag.id.toHex()
         return try {

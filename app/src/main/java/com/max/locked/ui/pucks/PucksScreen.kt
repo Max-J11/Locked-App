@@ -35,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.max.locked.R
 import com.max.locked.data.PairedKeyEntity
+import com.max.locked.ui.modes.ModeNameDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +47,7 @@ fun PucksScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf<PairedKeyEntity?>(null) }
     var choosingMode by remember { mutableStateOf<PairedKeyEntity?>(null) }
+    var renaming by remember { mutableStateOf<PairedKeyEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -78,6 +80,9 @@ fun PucksScreen(
                                 stringResource(R.string.puck_mode, state.modeName(puck.modeId)),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
+                        }
+                        TextButton(onClick = { renaming = puck }) {
+                            Text(stringResource(R.string.pucks_rename))
                         }
                         TextButton(onClick = { confirmDelete = puck }, enabled = !state.isLocked) {
                             Text(stringResource(R.string.pucks_remove))
@@ -128,6 +133,16 @@ fun PucksScreen(
             confirmButton = {
                 TextButton(onClick = { choosingMode = null }) { Text(stringResource(R.string.cancel)) }
             },
+        )
+    }
+
+    renaming?.let { puck ->
+        ModeNameDialog(
+            title = stringResource(R.string.pucks_rename_title),
+            confirmLabel = stringResource(R.string.save),
+            initial = puck.name,
+            onConfirm = { viewModel.rename(puck.id, it); renaming = null },
+            onDismiss = { renaming = null },
         )
     }
 

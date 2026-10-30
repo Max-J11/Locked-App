@@ -461,6 +461,13 @@ class BrickRepository @Inject constructor(
         return true
     }
 
+    /** A puck's name is only a label, so it can be changed even while locked. */
+    suspend fun renamePuck(id: Long, name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        pairedKeyDao.rename(id, trimmed)
+    }
+
     /** Which mode a puck locks. Frozen while locked: moving a puck onto a running mode would let it unlock. */
     suspend fun setPuckMode(keyId: Long, modeId: Long): Boolean {
         val (p, now) = storedPolicy()

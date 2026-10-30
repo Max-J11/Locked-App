@@ -31,8 +31,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LockedDatabase =
+        // No destructive fallback: every schema change must ship a migration (see LockedDatabase),
+        // so an update can never wipe her modes, pucks or schedules.
         Room.databaseBuilder(context, LockedDatabase::class.java, "locked.db")
-            // Development only: schema changes wipe data. Replace with real migrations before hand-off.
-            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 }

@@ -99,6 +99,9 @@ interface PairedKeyDao {
     @Query("DELETE FROM paired_key WHERE id = :id")
     suspend fun delete(id: Long)
 
+    @Query("UPDATE paired_key SET name = :name WHERE id = :id")
+    suspend fun rename(id: Long, name: String)
+
     @Query("UPDATE paired_key SET modeId = :modeId WHERE id = :id")
     suspend fun setMode(id: Long, modeId: Long)
 

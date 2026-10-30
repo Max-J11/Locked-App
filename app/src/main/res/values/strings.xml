@@ -75,9 +75,11 @@
     <string name="pucks_empty">No pucks yet.</string>
     <string name="pucks_pair_new">Pair a new puck</string>
     <string name="pucks_remove">Remove</string>
+    <string name="pucks_rename">Rename</string>
+    <string name="pucks_rename_title">Rename this puck</string>
     <string name="pucks_remove_title">Remove %1$s?</string>
     <string name="pucks_remove_body">This puck won\'t lock or unlock anything after it\'s removed. You can pair it again any time.</string>
-    <string name="pucks_locked_note">Pucks can be removed or changed once you\'re unlocked.</string>
+    <string name="pucks_locked_note">Pucks can be removed or set to another mode once you\'re unlocked.</string>
     <string name="cancel">Cancel</string>
 
     <!-- Pairing -->
@@ -206,4 +208,11 @@
         <item quantity="one">%d site</item>
         <item quantity="other">%d sites</item>
     </plurals>
+
+    <!-- Pairing a puck that already has a key -->
+    <string name="pairing_found_existing">This puck is already set up, maybe on another phone.</string>
+    <string name="pairing_use_existing">Use it as it is</string>
+    <string name="pairing_use_existing_note">It keeps working on any other phone it\'s paired with.</string>
+    <string name="pairing_write_new">Write a new key</string>
+    <string name="pairing_write_new_note">It will stop working on other phones until they pair it again.</string>
 </resources>
