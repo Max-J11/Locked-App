@@ -20,6 +20,9 @@ import com.max.locked.domain.normalizeSite
 import com.max.locked.domain.canStartCooldown
 import com.max.locked.domain.canStopHidingNotifications
 import com.max.locked.domain.canUsePass
+import com.max.locked.domain.canUseSitePass
+import com.max.locked.domain.blockingSite
+import com.max.locked.domain.sitePassTarget
 import com.max.locked.domain.canUnlockWithPuck
 import com.max.locked.domain.lockingPuckId
 import com.max.locked.domain.puckSource
@@ -372,18 +375,40 @@ class BrickRepository @Inject constructor(
             Log.d(TAG, "pass refused for $packageName (left=${p.passesLeft})")
             return@withLock false
         }
+        savePass(p, packageName, now)
+        true
+    }
+
+    /**
+     * Opens a blocked website for [PASS_MILLIS], using one of the same passes as apps. The pass
+     * covers the blocked entry that matched [host] ("youtube.com" for "m.youtube.com").
+     * Returns false if refused (not blocked, or none left).
+     */
+    suspend fun useSitePass(host: String): Boolean = stateMutex.withLock {
+        val now = System.currentTimeMillis()
+        val p = policyFromDb(now)
+        val site = blockingSite(host, p.blockedSites)
+        if (site == null || !canUseSitePass(p, host, now)) {
+            Log.d(TAG, "site pass refused for $host (left=${p.passesLeft})")
+            return@withLock false
+        }
+        savePass(p, sitePassTarget(site), now)
+        true
+    }
+
+    /** Puts [target] in the pass slot, replacing any running pass, and counts one pass used. */
+    private suspend fun savePass(p: Policy, target: String, now: Long) {
         val current = stateDao.get() ?: BrickStateEntity()
         val usedBefore = PASSES_PER_LOCK - p.passesLeft
         stateDao.upsert(
             current.copy(
-                passPackage = packageName,
+                passPackage = target,
                 passEndsAt = now + PASS_MILLIS,
                 passesUsed = usedBefore + 1,
                 passSessionStart = p.lockedSince,
             ),
         )
-        Log.d(TAG, "pass used for $packageName (${p.passesLeft - 1} left)")
-        true
+        Log.d(TAG, "pass used for $target (${p.passesLeft - 1} left)")
     }
 
     // --- Schedules ------------------------------------------------------------------------

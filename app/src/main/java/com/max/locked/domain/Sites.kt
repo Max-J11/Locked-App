@@ -33,3 +33,10 @@ fun normalizeSite(input: String): String? = hostOf(input)
 /** True if [host] is one of [sites] or a subdomain of one: "youtube.com" covers "m.youtube.com". */
 fun isSiteBlocked(host: String, sites: Set<String>): Boolean =
     sites.any { host == it || host.endsWith(".$it") }
+
+/**
+ * The entry in [sites] that blocks [host], or null. If several do ("youtube.com" and
+ * "m.youtube.com"), the broadest one, so a pass for it covers the others too.
+ */
+fun blockingSite(host: String, sites: Set<String>): String? =
+    sites.filter { host == it || host.endsWith(".$it") }.minByOrNull { it.length }

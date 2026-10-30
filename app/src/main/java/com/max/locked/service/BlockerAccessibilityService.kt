@@ -185,6 +185,34 @@ class BlockerAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Uses a pass for [host], waits until the policy shows it, then reopens [address] in the same
+     * browser. Falls back to the site's home page if the address can't be opened as it is.
+     */
+    private fun useSitePassAndReopen(pkg: String, host: String, address: String) {
+        scope?.launch {
+            if (!repository.useSitePass(host)) return@launch
+            withTimeoutOrNull(PASS_READY_TIMEOUT_MS) {
+                repository.policy.first { it.hasSitePass(host, System.currentTimeMillis()) }
+            }
+            val url = if ("://" in address) address else "https://$address"
+            val opened = openInBrowser(pkg, url) || openInBrowser(pkg, "https://$host")
+            Log.d(TAG, "site pass for $host, reopened=$opened")
+        }
+    }
+
+    private fun openInBrowser(pkg: String, url: String): Boolean = try {
+        startActivity(
+            Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                .setPackage(pkg)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        true
+    } catch (e: Exception) {
+        Log.d(TAG, "couldn't open $url in $pkg: $e")
+        false
+    }
+
     /** Re-checks the screen while Settings or the installer is in front. */
     private var strictWatch: Job? = null
     private var lastStrictScreen: ProtectedScreen? = null
@@ -248,16 +276,22 @@ class BlockerAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** The site in [pkg]'s address bar, or null while it's being typed in or shows no address. */
-    private fun browserHost(pkg: String): String? {
+    /**
+     * What [pkg]'s address bar shows, e.g. "m.youtube.com/watch?v=1", or null while it's being
+     * typed in or isn't on screen.
+     */
+    private fun browserAddress(pkg: String): String? {
         val barId = BROWSER_URL_BARS[pkg] ?: return null
         val root = windows.firstOrNull { (it.isActive || it.isFocused) && it.root?.packageName == pkg }?.root
             ?: return null
         val bar = root.findAccessibilityNodeInfosByViewId("$pkg:id/$barId").firstOrNull() ?: return null
         // While typing, the bar holds the search, not the page. Only a loaded page counts.
         if (bar.isFocused) return null
-        return hostOf(bar.text?.toString() ?: return null)
+        return bar.text?.toString()
     }
+
+    /** The site in [pkg]'s address bar, or null while it's being typed in or shows no address. */
+    private fun browserHost(pkg: String): String? = browserAddress(pkg)?.let(::hostOf)
 
     /**
      * If the browser shows a blocked site: Back (to the previous page, or closing a new tab), and
@@ -268,7 +302,9 @@ class BlockerAccessibilityService : AccessibilityService() {
         val now = System.currentTimeMillis()
         if (!policy.isActive(now) || policy.blockedSites.isEmpty()) return
         if (activeAppPackage() != pkg) return
-        val host = browserHost(pkg) ?: return
+        // Read the whole address before Back, so a pass can reopen this exact page.
+        val address = browserAddress(pkg) ?: return
+        val host = hostOf(address) ?: return
         if (!policy.isSiteBlocked(host, now)) return
 
         val nowMs = SystemClock.elapsedRealtime()
@@ -277,7 +313,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         Log.d(TAG, "blocked site $host in $pkg")
         history.recordBlock(host, isSite = true)
         performGlobalAction(GLOBAL_ACTION_BACK)
-        overlay.show(host)
+        overlay.show(host, policy.passesLeft, onUsePass = { useSitePassAndReopen(pkg, host, address) })
         scope?.launch {
             delay(SITE_STILL_OPEN_MS)
             val still = activeAppPackage() == pkg && browserHost(pkg)?.let {

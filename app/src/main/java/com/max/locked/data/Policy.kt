@@ -36,7 +36,7 @@ data class Policy(
     val cooldownEndsAt: Long? = null,
     /** The next moment the policy changes on its own: a timer, wait, pass or schedule window starting or ending. */
     val nextChange: Long? = null,
-    /** An app opened with a pass, until [passEndsAt]. */
+    /** An app (package) or site ("site:<domain>") opened with a pass, until [passEndsAt]. */
     val passPackage: String? = null,
     val passEndsAt: Long? = null,
     val passesLeft: Int = 0,
@@ -76,9 +76,15 @@ data class Policy(
     fun hasPass(packageName: String, now: Long): Boolean =
         packageName == passPackage && passEndsAt != null && now < passEndsAt
 
-    /** [host] is a blocked site right now. Sites have no passes. */
+    /** [host] is a blocked site right now, and not open on a pass. */
     fun isSiteBlocked(host: String, now: Long): Boolean =
-        isActive(now) && com.max.locked.domain.isSiteBlocked(host, blockedSites)
+        isActive(now) && com.max.locked.domain.isSiteBlocked(host, blockedSites) && !hasSitePass(host, now)
+
+    /** [host] is open on a site pass right now. A pass for "youtube.com" covers "m.youtube.com". */
+    fun hasSitePass(host: String, now: Long): Boolean {
+        val site = com.max.locked.domain.sitePassSite(passPackage) ?: return false
+        return passEndsAt != null && now < passEndsAt && com.max.locked.domain.isSiteBlocked(host, setOf(site))
+    }
 
     fun nextChangeAt(now: Long): Long? = nextChange?.takeIf { it > now }
 

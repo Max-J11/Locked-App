@@ -10,7 +10,7 @@ data class LockState(
     val cooldownEndsAt: Long? = null,
     /** What started the lock, e.g. "puck:3" or "timer". */
     val source: String? = null,
-    /** The app a pass is open for, until [passEndsAt]. */
+    /** The app (package) or site ("site:<domain>") a pass is open for, until [passEndsAt]. */
     val passPackage: String? = null,
     val passEndsAt: Long? = null,
     /** Passes used in the locked stretch that began at [passSessionStart]. */
