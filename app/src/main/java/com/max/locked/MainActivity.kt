@@ -29,6 +29,8 @@ import com.max.locked.ui.home.HomeScreen
 import com.max.locked.ui.pairing.PairingScreen
 import com.max.locked.ui.pucks.PucksScreen
 import com.max.locked.ui.settings.SettingsScreen
+import com.max.locked.ui.sites.SitesScreen
+import com.max.locked.ui.sites.SitesViewModel
 import com.max.locked.ui.theme.LockedTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -68,7 +70,18 @@ class MainActivity : ComponentActivity() {
                         route = "$ROUTE_MODE/{${AppPickerViewModel.ARG_MODE_ID}}",
                         arguments = listOf(navArgument(AppPickerViewModel.ARG_MODE_ID) { type = NavType.LongType }),
                     ) {
-                        AppPickerScreen(onBack = { nav.popBackStack() })
+                        AppPickerScreen(
+                            onBack = { nav.popBackStack() },
+                            onOpenSites = {
+                                nav.navigate("$ROUTE_SITES/${it.arguments?.getLong(AppPickerViewModel.ARG_MODE_ID)}")
+                            },
+                        )
+                    }
+                    composable(
+                        route = "$ROUTE_SITES/{${SitesViewModel.ARG_MODE_ID}}",
+                        arguments = listOf(navArgument(SitesViewModel.ARG_MODE_ID) { type = NavType.LongType }),
+                    ) {
+                        SitesScreen(onBack = { nav.popBackStack() })
                     }
                     composable(ROUTE_SCHEDULES) {
                         SchedulesScreen(
@@ -123,6 +136,7 @@ class MainActivity : ComponentActivity() {
         const val ROUTE_HOME = "home"
         const val ROUTE_MODES = "modes"
         const val ROUTE_MODE = "mode"
+        const val ROUTE_SITES = "sites"
         const val ROUTE_SCHEDULES = "schedules"
         const val ROUTE_SCHEDULE = "schedule"
         const val ROUTE_PUCKS = "pucks"

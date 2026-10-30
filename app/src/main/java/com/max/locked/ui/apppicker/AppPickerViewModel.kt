@@ -68,6 +68,10 @@ class AppPickerViewModel @Inject constructor(
     private val installed = MutableStateFlow<List<InstalledApp>?>(null)
     private val query = MutableStateFlow("")
 
+    /** Websites this mode blocks, sorted. */
+    val sites: StateFlow<List<String>> = repository.sites(modeId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val uiState: StateFlow<AppPickerUiState> =
         combine(
             installed,

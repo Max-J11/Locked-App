@@ -15,6 +15,8 @@ import com.max.locked.domain.canChangePucks
 import com.max.locked.domain.canChangeSchedule
 import com.max.locked.domain.canDeleteMode
 import com.max.locked.domain.canRemoveApp
+import com.max.locked.domain.canRemoveSite
+import com.max.locked.domain.normalizeSite
 import com.max.locked.domain.canStartCooldown
 import com.max.locked.domain.canStopHidingNotifications
 import com.max.locked.domain.canUsePass
@@ -57,6 +59,7 @@ class BrickRepository @Inject constructor(
     private val stateDao = db.brickStateDao()
     private val pairedKeyDao = db.pairedKeyDao()
     private val scheduleDao = db.scheduleDao()
+    private val modeSiteDao = db.modeSiteDao()
 
     /** Serializes lock/unlock so two quick taps can't race. */
     private val stateMutex = Mutex()
@@ -86,7 +89,8 @@ class BrickRepository @Inject constructor(
             scheduleDao.observeAll(),
             modeDao.observeAll(),
             modeAppDao.observeAll(),
-        ) { state, schedules, modes, apps -> buildInputs(state, schedules, modes, apps) }
+            modeSiteDao.observeAll(),
+        ) { state, schedules, modes, apps, sites -> buildInputs(state, schedules, modes, apps, sites) }
             .stateIn(scope, SharingStarted.Eagerly, null)
 
     private fun buildInputs(
@@ -94,12 +98,20 @@ class BrickRepository @Inject constructor(
         schedules: List<ScheduleEntity>,
         modes: List<ModeEntity>,
         apps: List<ModeAppEntity>,
+        sites: List<ModeSiteEntity>,
     ): PolicyInputs {
         val appsByMode = apps.groupBy({ it.modeId }, { it.packageName })
+        val sitesByMode = sites.groupBy({ it.modeId }, { it.domain })
         return PolicyInputs(
             state = state?.toLockState(),
             schedules = schedules.map { it.toRule() },
-            modes = modes.associate { it.id to ModeRule(appsByMode[it.id].orEmpty().toSet(), it.blockNotifications) },
+            modes = modes.associate {
+                it.id to ModeRule(
+                    apps = appsByMode[it.id].orEmpty().toSet(),
+                    blockNotifications = it.blockNotifications,
+                    sites = sitesByMode[it.id].orEmpty().toSet(),
+                )
+            },
             neverBlock = neverBlockList.packages(),
         )
     }
@@ -116,7 +128,10 @@ class BrickRepository @Inject constructor(
 
     /** Reads stored state directly. For taps that may cold-start the process before [inputs] loads. */
     private suspend fun policyFromDb(now: Long): Policy =
-        compute(buildInputs(stateDao.get(), scheduleDao.getAll(), modeDao.getAll(), modeAppDao.getAll()), now)
+        compute(
+            buildInputs(stateDao.get(), scheduleDao.getAll(), modeDao.getAll(), modeAppDao.getAll(), modeSiteDao.getAll()),
+            now,
+        )
 
     /**
      * Recomputed whenever stored state changes, and again whenever a timer, wait or schedule
@@ -471,6 +486,33 @@ class BrickRepository @Inject constructor(
             return false
         }
         modeAppDao.delete(modeId, packageName)
+        return true
+    }
+
+    // --- Websites -------------------------------------------------------------------------
+
+    fun sites(modeId: Long): Flow<List<String>> = modeSiteDao.observeDomains(modeId)
+
+    /**
+     * Adds a website to a mode, cleaned up with [normalizeSite] ("https://www.YouTube.com/x"
+     * becomes "youtube.com"). Always allowed. Returns the stored domain, or null if [input]
+     * isn't a website address.
+     */
+    suspend fun addSite(modeId: Long, input: String): String? {
+        val domain = normalizeSite(input) ?: return null
+        modeSiteDao.insert(ModeSiteEntity(modeId, domain))
+        Log.d(TAG, "added site $domain to mode $modeId")
+        return domain
+    }
+
+    /** Only stricter while locked: sites can't be removed from a mode in use. Returns false if refused. */
+    suspend fun removeSite(modeId: Long, domain: String): Boolean {
+        val (p, now) = storedPolicy()
+        if (!canRemoveSite(p, modeId, now)) {
+            Log.d(TAG, "refused to remove $domain from active mode $modeId")
+            return false
+        }
+        modeSiteDao.delete(modeId, domain)
         return true
     }
 

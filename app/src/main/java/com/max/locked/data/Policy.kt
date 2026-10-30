@@ -30,6 +30,8 @@ data class Policy(
     val blockedPackages: Set<String> = emptySet(),
     /** Blocked apps whose notifications are dismissed. */
     val notificationPackages: Set<String> = emptySet(),
+    /** Domains blocked in browsers; each also covers its subdomains. */
+    val blockedSites: Set<String> = emptySet(),
     /** "Unlock without puck" is counting down to this time. */
     val cooldownEndsAt: Long? = null,
     /** The next moment the policy changes on its own: a timer, wait, pass or schedule window starting or ending. */
@@ -73,6 +75,10 @@ data class Policy(
     /** This app is open on a pass right now. */
     fun hasPass(packageName: String, now: Long): Boolean =
         packageName == passPackage && passEndsAt != null && now < passEndsAt
+
+    /** [host] is a blocked site right now. Sites have no passes. */
+    fun isSiteBlocked(host: String, now: Long): Boolean =
+        isActive(now) && com.max.locked.domain.isSiteBlocked(host, blockedSites)
 
     fun nextChangeAt(now: Long): Long? = nextChange?.takeIf { it > now }
 

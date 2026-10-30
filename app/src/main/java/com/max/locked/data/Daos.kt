@@ -29,8 +29,10 @@ interface ModeDao {
     suspend fun setBlockNotifications(id: Long, on: Boolean)
 
     @Query(
-        "SELECT m.id, m.name, m.blockNotifications, COUNT(a.packageName) AS appCount " +
-            "FROM mode m LEFT JOIN mode_app a ON a.modeId = m.id GROUP BY m.id ORDER BY m.id",
+        "SELECT m.id, m.name, m.blockNotifications, " +
+            "(SELECT COUNT(*) FROM mode_app a WHERE a.modeId = m.id) AS appCount, " +
+            "(SELECT COUNT(*) FROM mode_site s WHERE s.modeId = m.id) AS siteCount " +
+            "FROM mode m ORDER BY m.id",
     )
     fun observeSummaries(): Flow<List<ModeSummary>>
 
@@ -60,6 +62,24 @@ interface ModeAppDao {
 
     @Query("DELETE FROM mode_app WHERE modeId = :modeId AND packageName = :packageName")
     suspend fun delete(modeId: Long, packageName: String)
+}
+
+@Dao
+interface ModeSiteDao {
+    @Query("SELECT domain FROM mode_site WHERE modeId = :modeId ORDER BY domain")
+    fun observeDomains(modeId: Long): Flow<List<String>>
+
+    @Query("SELECT * FROM mode_site")
+    fun observeAll(): Flow<List<ModeSiteEntity>>
+
+    @Query("SELECT * FROM mode_site")
+    suspend fun getAll(): List<ModeSiteEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(site: ModeSiteEntity)
+
+    @Query("DELETE FROM mode_site WHERE modeId = :modeId AND domain = :domain")
+    suspend fun delete(modeId: Long, domain: String)
 }
 
 @Dao

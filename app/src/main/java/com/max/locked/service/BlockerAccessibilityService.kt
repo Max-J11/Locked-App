@@ -13,7 +13,9 @@ import com.max.locked.data.Policy
 import com.max.locked.data.SettingsRepository
 import com.max.locked.domain.ProtectedScreen
 import com.max.locked.domain.STRICT_MODE_PACKAGES
+import com.max.locked.domain.BROWSER_URL_BARS
 import com.max.locked.domain.ScreenNode
+import com.max.locked.domain.hostOf
 import com.max.locked.domain.protectedScreen
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -61,30 +63,34 @@ class BlockerAccessibilityService : AccessibilityService() {
             s.launch { repository.policy.drop(1).collect { recheckForeground() } }
             s.launch {
                 combine(settings.strictMode, repository.policy) { strict, policy ->
-                    strict && policy.isActive(System.currentTimeMillis())
+                    val active = policy.isActive(System.currentTimeMillis())
+                    (strict && active) || (active && policy.blockedSites.isNotEmpty())
                 }.distinctUntilChanged().collect(::watchPageChanges)
             }
         }
     }
 
     /**
-     * Page-change events let strict mode close a page the moment it fills in, before its switch
-     * can be tapped. They're frequent, so they're only switched on while strict mode is in effect.
+     * Page-change events let strict mode close a page the moment it fills in, and let site
+     * blocking see a browser move to a new address. They're frequent, so they're only switched on
+     * while strict mode is in effect or a lock includes websites.
      */
     private fun watchPageChanges(on: Boolean) {
         val info = serviceInfo ?: return
         info.eventTypes = if (on) BASE_EVENT_TYPES or AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED else BASE_EVENT_TYPES
         serviceInfo = info
-        Log.d(TAG, "strict mode watching page changes: $on")
+        Log.d(TAG, "watching page changes: $on")
     }
 
-    /** The policy changed (e.g. a schedule started): block the app already on screen if needed. */
+    /** The policy changed (e.g. a schedule started): block the app or site already on screen if needed. */
     private fun recheckForeground() {
         val pkg = activeAppPackage() ?: return
         if (pkg == packageName) return
         if (repository.currentPolicy().isBlocked(pkg, System.currentTimeMillis())) {
             Log.d(TAG, "policy changed while $pkg was open")
             block(pkg)
+        } else if (pkg in BROWSER_URL_BARS) {
+            checkBrowser(pkg)
         }
     }
 
@@ -93,9 +99,10 @@ class BlockerAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> event.packageName?.toString()
             AccessibilityEvent.TYPE_WINDOWS_CHANGED -> activeAppPackage()
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-                // Only used by strict mode, and only for Settings and the installer.
-                val p = event.packageName?.toString()
-                if (p in STRICT_MODE_PACKAGES) guardStrictMode(p!!)
+                // Only switched on for strict mode and site blocking; every other app returns here.
+                val p = event.packageName?.toString() ?: return
+                if (p in STRICT_MODE_PACKAGES) guardStrictMode(p)
+                if (p in BROWSER_URL_BARS) scheduleBrowserCheck(p)
                 return
             }
             else -> null
@@ -114,7 +121,10 @@ class BlockerAccessibilityService : AccessibilityService() {
             return
         }
 
-        if (!repository.currentPolicy().isBlocked(pkg, System.currentTimeMillis())) return
+        if (!repository.currentPolicy().isBlocked(pkg, System.currentTimeMillis())) {
+            if (pkg in BROWSER_URL_BARS) checkBrowser(pkg)
+            return
+        }
 
         // Blocked apps can send a late state event after we've already sent the user home.
         // Pressing HOME again on One UI jumps to the main home page, so confirm the app
@@ -218,6 +228,64 @@ class BlockerAccessibilityService : AccessibilityService() {
         return true
     }
 
+    // --- Websites ---------------------------------------------------------------------------
+
+    private var browserCheck: Job? = null
+    private var lastSiteBlockAtMs = 0L
+
+    /**
+     * Browsers fire page-change events constantly while a page loads or scrolls. Check at most
+     * once per [BROWSER_CHECK_MS], after the burst, rather than on every event.
+     */
+    private fun scheduleBrowserCheck(pkg: String) {
+        if (browserCheck?.isActive == true) return
+        browserCheck = scope?.launch {
+            delay(BROWSER_CHECK_MS)
+            checkBrowser(pkg)
+        }
+    }
+
+    /** The site in [pkg]'s address bar, or null while it's being typed in or shows no address. */
+    private fun browserHost(pkg: String): String? {
+        val barId = BROWSER_URL_BARS[pkg] ?: return null
+        val root = windows.firstOrNull { (it.isActive || it.isFocused) && it.root?.packageName == pkg }?.root
+            ?: return null
+        val bar = root.findAccessibilityNodeInfosByViewId("$pkg:id/$barId").firstOrNull() ?: return null
+        // While typing, the bar holds the search, not the page. Only a loaded page counts.
+        if (bar.isFocused) return null
+        return hostOf(bar.text?.toString() ?: return null)
+    }
+
+    /**
+     * If the browser shows a blocked site: Back (to the previous page, or closing a new tab), and
+     * the overlay. If the site is still showing a moment later, go home instead.
+     */
+    private fun checkBrowser(pkg: String) {
+        val policy = repository.currentPolicy()
+        val now = System.currentTimeMillis()
+        if (!policy.isActive(now) || policy.blockedSites.isEmpty()) return
+        if (activeAppPackage() != pkg) return
+        val host = browserHost(pkg) ?: return
+        if (!policy.isSiteBlocked(host, now)) return
+
+        val nowMs = SystemClock.elapsedRealtime()
+        if (nowMs - lastSiteBlockAtMs < DEBOUNCE_MS) return
+        lastSiteBlockAtMs = nowMs
+        Log.d(TAG, "blocked site $host in $pkg")
+        performGlobalAction(GLOBAL_ACTION_BACK)
+        overlay.show(host)
+        scope?.launch {
+            delay(SITE_STILL_OPEN_MS)
+            val still = activeAppPackage() == pkg && browserHost(pkg)?.let {
+                repository.currentPolicy().isSiteBlocked(it, System.currentTimeMillis())
+            } == true
+            if (still) {
+                Log.d(TAG, "site $host still open after Back, going home")
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }
+        }
+    }
+
     /** View ids and text in the active window of [pkg]. Only called for Settings and the installer. */
     private fun screenNodes(pkg: String): List<ScreenNode> {
         val root = windows.firstOrNull { (it.isActive || it.isFocused) && it.root?.packageName == pkg }?.root
@@ -257,6 +325,8 @@ class BlockerAccessibilityService : AccessibilityService() {
         private const val TAG = "Locked"
         private const val DEBOUNCE_MS = 750L
         private const val PASS_READY_TIMEOUT_MS = 2_000L
+        private const val BROWSER_CHECK_MS = 200L
+        private const val SITE_STILL_OPEN_MS = 1_500L
         private const val STRICT_POLL_MS = 150L
         private const val STRICT_REPEAT_MS = 400L
         /** Matches accessibility_config.xml. */

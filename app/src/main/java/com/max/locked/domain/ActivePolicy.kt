@@ -13,6 +13,8 @@ const val DEFAULT_MODE_ID = 1L
 data class ModeRule(
     val apps: Set<String>,
     val blockNotifications: Boolean = false,
+    /** Websites (domains) blocked in browsers. */
+    val sites: Set<String> = emptySet(),
 )
 
 /**
@@ -25,7 +27,8 @@ data class ModeRule(
  *   "Unlock without puck" wait finished while it was running.
  *
  * Everything active is combined: the apps of every active mode are blocked (minus the never-block
- * list), and notifications are hidden for apps from active modes that have that switched on.
+ * list), notifications are hidden for apps from active modes that have that switched on, and
+ * the sites of every active mode are blocked in browsers.
  */
 fun activePolicy(
     now: Long,
@@ -76,6 +79,7 @@ fun activePolicy(
         schedules = activeSchedules,
         blockedPackages = activeModes.flatMap { it.apps }.toSet() - neverBlock,
         notificationPackages = activeModes.filter { it.blockNotifications }.flatMap { it.apps }.toSet() - neverBlock,
+        blockedSites = activeModes.flatMap { it.sites }.toSet(),
         cooldownEndsAt = cooldown?.takeIf { it > now },
         nextChange = nextChange,
         passPackage = state?.passPackage?.takeIf { passEndsAt != null },

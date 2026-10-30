@@ -63,6 +63,9 @@ fun ModesScreen(
                         Text(mode.name, style = MaterialTheme.typography.titleMedium)
                         val details = buildList {
                             add(pluralStringResource(R.plurals.mode_app_count, mode.appCount, mode.appCount))
+                            if (mode.siteCount > 0) {
+                                add(pluralStringResource(R.plurals.mode_site_count, mode.siteCount, mode.siteCount))
+                            }
                             if (mode.blockNotifications) add(stringResource(R.string.mode_hides_notifications))
                             if (mode.id in state.activeModeIds) add(stringResource(R.string.mode_in_use))
                         }

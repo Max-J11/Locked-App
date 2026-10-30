@@ -191,4 +191,19 @@
     <string name="strict_mode_summary">While locked, Locked\'s App info page, the Accessibility apps list and its uninstall prompt close when opened, so the blocker is harder to switch off mid-lock.</string>
     <string name="strict_mode_locked_note">Strict mode can be turned off once you\'re unlocked.</string>
     <string name="overlay_settings_message">Locked\'s settings are closed while locked.</string>
+
+    <!-- Websites -->
+    <string name="sites_title">Websites</string>
+    <string name="sites_screen_title">Websites in %1$s</string>
+    <string name="sites_none">No websites yet</string>
+    <string name="sites_explainer">These sites close in Chrome and Brave while this mode is locked. Adding youtube.com also covers m.youtube.com.</string>
+    <string name="sites_add_hint">Website, like youtube.com</string>
+    <string name="sites_add">Add</string>
+    <string name="sites_remove">Remove</string>
+    <string name="sites_invalid">That doesn\'t look like a website address.</string>
+    <string name="sites_active_note">This mode is in use right now. Sites can be removed once you\'re unlocked.</string>
+    <plurals name="mode_site_count">
+        <item quantity="one">%d site</item>
+        <item quantity="other">%d sites</item>
+    </plurals>
 </resources>

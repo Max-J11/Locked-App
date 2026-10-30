@@ -47,6 +47,14 @@ class StrictnessTest {
     }
 
     @Test
+    fun `the mode in use can't lose websites, other modes can`() {
+        val p = lockedIn(work)
+        assertFalse(canRemoveSite(p, work, now))
+        assertTrue(canRemoveSite(p, sleep, now))
+        assertTrue(canRemoveSite(unlocked, work, now))
+    }
+
+    @Test
     fun `other modes can still be loosened`() {
         val p = lockedIn(work)
         assertTrue(canRemoveApp(p, sleep, now))

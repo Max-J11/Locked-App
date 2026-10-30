@@ -15,6 +15,9 @@ fun isModeInUse(policy: Policy, modeId: Long, now: Long): Boolean =
 /** Apps can't be taken out of a mode in use. */
 fun canRemoveApp(policy: Policy, modeId: Long, now: Long): Boolean = !isModeInUse(policy, modeId, now)
 
+/** Websites can't be taken out of a mode in use. */
+fun canRemoveSite(policy: Policy, modeId: Long, now: Long): Boolean = !isModeInUse(policy, modeId, now)
+
 /** Notification hiding can't be turned off for a mode in use. */
 fun canStopHidingNotifications(policy: Policy, modeId: Long, now: Long): Boolean =
     !isModeInUse(policy, modeId, now)

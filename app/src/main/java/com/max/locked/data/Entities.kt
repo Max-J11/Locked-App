@@ -30,6 +30,25 @@ data class ModeAppEntity(
     val packageName: String,
 )
 
+/** A website (domain, like "youtube.com") a mode blocks in browsers. Covers its subdomains. */
+@Entity(
+    tableName = "mode_site",
+    primaryKeys = ["modeId", "domain"],
+    foreignKeys = [
+        ForeignKey(
+            entity = ModeEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["modeId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("modeId")],
+)
+data class ModeSiteEntity(
+    val modeId: Long,
+    val domain: String,
+)
+
 /**
  * A paired puck. Matched on tag UID AND the SHA-256 of the secret written to it.
  * The secret itself is never stored on the phone.
@@ -68,12 +87,13 @@ data class BrickStateEntity(
     }
 }
 
-/** A mode plus how many apps it blocks, for list screens. Not a table. */
+/** A mode plus how many apps and sites it blocks, for list screens. Not a table. */
 data class ModeSummary(
     val id: Long,
     val name: String,
     val blockNotifications: Boolean,
     val appCount: Int,
+    val siteCount: Int,
 )
 
 /**

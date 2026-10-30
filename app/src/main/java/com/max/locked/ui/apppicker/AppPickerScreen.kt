@@ -2,6 +2,7 @@ package com.max.locked.ui.apppicker
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,9 +49,11 @@ import com.max.locked.ui.modes.ModeNameDialog
 @Composable
 fun AppPickerScreen(
     onBack: () -> Unit,
+    onOpenSites: () -> Unit,
     viewModel: AppPickerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val sites by viewModel.sites.collectAsStateWithLifecycle()
     var renaming by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
@@ -100,6 +103,21 @@ fun AppPickerScreen(
                     checked = state.hideNotifications,
                     onCheckedChange = null,
                     enabled = !state.hideNotificationsLocked,
+                )
+            }
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onOpenSites)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(stringResource(R.string.sites_title), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    sites.joinToString(", ").ifEmpty { stringResource(R.string.sites_none) },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (state.modeActive) {
