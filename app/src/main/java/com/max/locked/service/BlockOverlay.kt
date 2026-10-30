@@ -37,10 +37,14 @@ class BlockOverlay(private val service: AccessibilityService) {
      * [onUsePass] and hides the overlay. Stays up longer when a pass is offered, so there's time
      * to tap it.
      */
-    fun show(appName: String, passesLeft: Int = 0, onUsePass: (() -> Unit)? = null) {
+    fun show(appName: String, passesLeft: Int = 0, onUsePass: (() -> Unit)? = null) =
+        showMessage(service.getString(R.string.overlay_message, appName), passesLeft, onUsePass)
+
+    /** Same overlay with any [message], e.g. for strict mode closing a Settings page. */
+    fun showMessage(message: String, passesLeft: Int = 0, onUsePass: (() -> Unit)? = null) {
         hide()
         val offerPass = passesLeft > 0 && onUsePass != null
-        val v = buildView(appName, if (offerPass) passesLeft else 0, onUsePass)
+        val v = buildView(message, if (offerPass) passesLeft else 0, onUsePass)
         try {
             windowManager.addView(v, layoutParams())
             view = v
@@ -73,7 +77,7 @@ class BlockOverlay(private val service: AccessibilityService) {
         PixelFormat.TRANSLUCENT,
     )
 
-    private fun buildView(appName: String, passesLeft: Int, onUsePass: (() -> Unit)?): View {
+    private fun buildView(messageText: String, passesLeft: Int, onUsePass: (() -> Unit)?): View {
         val ctx = service
         fun dp(value: Int) = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), ctx.resources.displayMetrics,
@@ -86,7 +90,7 @@ class BlockOverlay(private val service: AccessibilityService) {
             gravity = Gravity.CENTER
         }
         val message = TextView(ctx).apply {
-            text = ctx.getString(R.string.overlay_message, appName)
+            text = messageText
             setTextColor(Color.argb(220, 255, 255, 255))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             gravity = Gravity.CENTER

@@ -147,7 +147,7 @@ class BrickRepository @Inject constructor(
      * The policy from stored state, for "only stricter while locked" checks. Reads Room rather than
      * [currentPolicy], which is empty for a moment after the process starts.
      */
-    private suspend fun storedPolicy(): Pair<Policy, Long> {
+    suspend fun storedPolicy(): Pair<Policy, Long> {
         val now = System.currentTimeMillis()
         return policyFromDb(now) to now
     }

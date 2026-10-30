@@ -29,6 +29,9 @@ fun canDeleteMode(policy: Policy, modeId: Long, now: Long): Boolean =
 /** Pucks can't be removed or moved to another mode while locked: a moved puck could end the lock. */
 fun canChangePucks(policy: Policy, now: Long): Boolean = !policy.isActive(now)
 
+/** Strict mode can always be turned on, but only turned off while nothing is locked. */
+fun canTurnOffStrictMode(policy: Policy, now: Long): Boolean = !policy.isActive(now)
+
 /** A schedule running right now can't be edited, switched off or deleted. Others can. */
 fun canChangeSchedule(policy: Policy, scheduleId: Long, now: Long): Boolean =
     !(policy.isActive(now) && policy.schedules.any { it.scheduleId == scheduleId })

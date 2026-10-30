@@ -184,4 +184,11 @@
     <string name="health_channel_description">Lets you know if the blocker turns off while something is locked.</string>
     <string name="health_title">Locked\'s blocker is off</string>
     <string name="health_text">Tap to open Accessibility, then Installed apps › Locked.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="strict_mode">Strict mode</string>
+    <string name="strict_mode_summary">While locked, Locked\'s App info page, the Accessibility apps list and its uninstall prompt close when opened, so the blocker is harder to switch off mid-lock.</string>
+    <string name="strict_mode_locked_note">Strict mode can be turned off once you\'re unlocked.</string>
+    <string name="overlay_settings_message">Locked\'s settings are closed while locked.</string>
 </resources>

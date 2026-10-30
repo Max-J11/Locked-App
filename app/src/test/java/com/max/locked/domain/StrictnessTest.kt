@@ -80,6 +80,13 @@ class StrictnessTest {
     }
 
     @Test
+    fun `strict mode can only be turned off while unlocked`() {
+        assertTrue(canTurnOffStrictMode(unlocked, now))
+        assertFalse(canTurnOffStrictMode(lockedIn(work), now))
+        assertFalse(canTurnOffStrictMode(scheduleRunning, now))
+    }
+
+    @Test
     fun `a running schedule's mode is in use`() {
         assertFalse(canRemoveApp(scheduleRunning, sleep, now))
     }
