@@ -30,6 +30,7 @@ import com.max.locked.ui.pairing.PairingScreen
 import com.max.locked.ui.pucks.PucksScreen
 import com.max.locked.ui.settings.SettingsScreen
 import com.max.locked.ui.sites.SitesScreen
+import com.max.locked.ui.stats.StatsScreen
 import com.max.locked.ui.sites.SitesViewModel
 import com.max.locked.ui.theme.LockedTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
                                 onSchedules = { nav.navigate(ROUTE_SCHEDULES) },
                                 onPucks = { nav.navigate(ROUTE_PUCKS) },
                                 onSettings = { nav.navigate(ROUTE_SETTINGS) },
+                                onStats = { nav.navigate(ROUTE_STATS) },
                                 modifier = Modifier.padding(padding),
                             )
                         }
@@ -107,6 +109,9 @@ class MainActivity : ComponentActivity() {
                     composable(ROUTE_SETTINGS) {
                         SettingsScreen(onBack = { nav.popBackStack() })
                     }
+                    composable(ROUTE_STATS) {
+                        StatsScreen(onBack = { nav.popBackStack() })
+                    }
                     composable(ROUTE_PAIR) {
                         PairingScreen(onDone = { nav.popBackStack() })
                     }
@@ -142,5 +147,6 @@ class MainActivity : ComponentActivity() {
         const val ROUTE_PUCKS = "pucks"
         const val ROUTE_PAIR = "pair"
         const val ROUTE_SETTINGS = "settings"
+        const val ROUTE_STATS = "stats"
     }
 }

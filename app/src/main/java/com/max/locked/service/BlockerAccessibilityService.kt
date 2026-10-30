@@ -9,6 +9,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import com.max.locked.R
 import com.max.locked.data.BrickRepository
+import com.max.locked.data.HistoryRepository
 import com.max.locked.data.Policy
 import com.max.locked.data.SettingsRepository
 import com.max.locked.domain.ProtectedScreen
@@ -46,6 +47,7 @@ class BlockerAccessibilityService : AccessibilityService() {
 
     @Inject lateinit var repository: BrickRepository
     @Inject lateinit var settings: SettingsRepository
+    @Inject lateinit var history: HistoryRepository
 
     private lateinit var overlay: BlockOverlay
 
@@ -156,6 +158,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         lastBlockAtMs = now
 
         Log.d(TAG, "blocked $pkg")
+        history.recordBlock(pkg, isSite = false)
         performGlobalAction(GLOBAL_ACTION_HOME)
         val passesLeft = repository.currentPolicy().passesLeft
         overlay.show(appLabel(pkg), passesLeft, onUsePass = { usePassAndReopen(pkg) })
@@ -272,6 +275,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         if (nowMs - lastSiteBlockAtMs < DEBOUNCE_MS) return
         lastSiteBlockAtMs = nowMs
         Log.d(TAG, "blocked site $host in $pkg")
+        history.recordBlock(host, isSite = true)
         performGlobalAction(GLOBAL_ACTION_BACK)
         overlay.show(host)
         scope?.launch {

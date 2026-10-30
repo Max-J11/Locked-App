@@ -150,3 +150,40 @@ interface ScheduleDao {
     @Query("UPDATE schedule SET modeId = :to WHERE modeId = :from")
     suspend fun reassignMode(from: Long, to: Long)
 }
+
+@Dao
+interface SessionLogDao {
+    @Query("SELECT * FROM session_log ORDER BY startedAt")
+    fun observeAll(): Flow<List<SessionLogEntity>>
+
+    @Query("SELECT * FROM session_log WHERE endedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
+    suspend fun getOpen(): SessionLogEntity?
+
+    @Query("SELECT MAX(endedAt) FROM session_log")
+    suspend fun latestEnd(): Long?
+
+    @Insert
+    suspend fun insert(session: SessionLogEntity): Long
+
+    @Update
+    suspend fun update(session: SessionLogEntity)
+
+    /** Clear history. The lock that's running (if any) is kept, so it's still counted when it ends. */
+    @Query("DELETE FROM session_log WHERE endedAt IS NOT NULL")
+    suspend fun deleteFinished()
+}
+
+@Dao
+interface BlockEventDao {
+    @Insert
+    suspend fun insert(event: BlockEventEntity)
+
+    @Query(
+        "SELECT target, isSite, COUNT(*) AS count FROM block_event WHERE at >= :from " +
+            "GROUP BY target, isSite ORDER BY count DESC, target",
+    )
+    fun observeCountsSince(from: Long): Flow<List<TargetCount>>
+
+    @Query("DELETE FROM block_event")
+    suspend fun deleteAll()
+}

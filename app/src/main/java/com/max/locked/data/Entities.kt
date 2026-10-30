@@ -112,3 +112,31 @@ data class ScheduleEntity(
     /** A puck ended the window that ends at this time. */
     val skippedUntil: Long? = null,
 )
+
+/**
+ * One locked stretch, for stats. Written by [HistoryRepository] as the lock starts and ends.
+ * [endedAt] is null while it's still going.
+ */
+@Entity(tableName = "session_log", indices = [Index("startedAt"), Index("endedAt")])
+data class SessionLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val startedAt: Long,
+    val endedAt: Long? = null,
+    /** When it's due to end (timer, schedule or "Unlock without puck"), if known. Used if the app wasn't running when it ended. */
+    val expectedEnd: Long? = null,
+    val modeId: Long,
+    val passesUsed: Int = 0,
+)
+
+/** An app or website Locked stepped in on, for stats. */
+@Entity(tableName = "block_event", indices = [Index("at")])
+data class BlockEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val at: Long,
+    /** Package name, or a website's domain when [isSite]. */
+    val target: String,
+    val isSite: Boolean,
+)
+
+/** How many times one app or site was stepped in on. */
+data class TargetCount(val target: String, val isSite: Boolean, val count: Int)

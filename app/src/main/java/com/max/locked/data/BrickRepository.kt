@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -125,6 +126,11 @@ class BrickRepository @Inject constructor(
      */
     fun currentPolicy(now: Long = System.currentTimeMillis()): Policy =
         inputs.value?.let { compute(it, now) } ?: Policy.UNLOCKED
+
+    /** Waits until stored state has loaded, so [currentPolicy] is real rather than the empty placeholder. */
+    suspend fun awaitLoaded() {
+        inputs.filterNotNull().first()
+    }
 
     /** Reads stored state directly. For taps that may cold-start the process before [inputs] loads. */
     private suspend fun policyFromDb(now: Long): Policy =

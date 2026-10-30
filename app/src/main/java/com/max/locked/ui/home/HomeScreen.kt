@@ -42,6 +42,7 @@ fun HomeScreen(
     onSchedules: () -> Unit,
     onPucks: () -> Unit,
     onSettings: () -> Unit,
+    onStats: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -136,6 +137,7 @@ fun HomeScreen(
         TextButton(onClick = onPucks) { Text(stringResource(R.string.manage_pucks)) }
 
         Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onStats) { Text(stringResource(R.string.stats_title)) }
         TextButton(onClick = onSettings) { Text(stringResource(R.string.settings_title)) }
     }
 

@@ -215,4 +215,32 @@
     <string name="pairing_use_existing_note">It keeps working on any other phone it\'s paired with.</string>
     <string name="pairing_write_new">Write a new key</string>
     <string name="pairing_write_new_note">It will stop working on other phones until they pair it again.</string>
+
+    <!-- Stats -->
+    <string name="stats_title">Stats</string>
+    <string name="stats_empty">Your stats will show up here after your first lock.</string>
+    <string name="stats_last_7_days">Last 7 days</string>
+    <plurals name="stats_locks">
+        <item quantity="one">%d lock</item>
+        <item quantity="other">%d locks</item>
+    </plurals>
+    <string name="stats_today">Today</string>
+    <string name="stats_day_value">%1$s · %2$s</string>
+    <string name="stats_this_month">This month</string>
+    <string name="stats_all_time">All time</string>
+    <string name="stats_step_ins_title">Locked stepped in</string>
+    <plurals name="stats_step_ins">
+        <item quantity="one">%d time in the last 7 days</item>
+        <item quantity="other">%d times in the last 7 days</item>
+    </plurals>
+    <plurals name="stats_passes">
+        <item quantity="one">%d pass used</item>
+        <item quantity="other">%d passes used</item>
+    </plurals>
+    <string name="stats_clear">Clear history</string>
+    <string name="stats_clear_title">Clear history?</string>
+    <string name="stats_clear_body">This deletes your stats. Your modes, pucks and schedules stay as they are. A lock that\'s running now will still be counted when it ends.</string>
+    <string name="stats_clear_confirm">Clear</string>
+    <string name="duration_hm">%1$d h %2$d m</string>
+    <string name="duration_m">%1$d m</string>
 </resources>
