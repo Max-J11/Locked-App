@@ -113,4 +113,30 @@ class StrictnessTest {
         assertFalse(canChangePucks(p, now))
         assertTrue(canChangePucks(p, now + 1_000))
     }
+
+    @Test
+    fun `a new puck can get any mode while unlocked`() {
+        assertTrue(canGivePuckMode(unlocked, work, currentModeId = null, now))
+        assertTrue(canGivePuckMode(unlocked, DEFAULT_MODE_ID, currentModeId = null, now))
+    }
+
+    @Test
+    fun `a new puck can't get the mode a lock is using`() {
+        val p = lockedIn(work)
+        assertFalse(canGivePuckMode(p, work, currentModeId = null, now))
+        assertTrue(canGivePuckMode(p, sleep, currentModeId = null, now))
+    }
+
+    @Test
+    fun `a new puck can't get the mode a running schedule is using`() {
+        assertFalse(canGivePuckMode(scheduleRunning, sleep, currentModeId = null, now))
+        assertTrue(canGivePuckMode(scheduleRunning, work, currentModeId = null, now))
+    }
+
+    @Test
+    fun `re-pairing a puck on its own mode is fine while locked, moving it in isn't`() {
+        val p = lockedIn(work)
+        assertTrue(canGivePuckMode(p, work, currentModeId = work, now))
+        assertFalse(canGivePuckMode(p, work, currentModeId = sleep, now))
+    }
 }

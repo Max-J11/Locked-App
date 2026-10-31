@@ -42,9 +42,11 @@ object TagWriter {
      * the tag was discovered, so no extra I/O. A puck paired on another phone has one; using it as
      * is lets both phones accept the same puck.
      */
-    fun readKey(tag: Tag): String? =
-        Ndef.get(tag)?.cachedNdefMessage?.records
-            ?.firstNotNullOfOrNull { record -> record.toUri()?.toString()?.let(KeyUri::parse) }
+    fun readKey(tag: Tag): String? = Ndef.get(tag)?.cachedNdefMessage?.let(::keyIn)
+
+    /** The Locked key in [message], if it has one. */
+    private fun keyIn(message: NdefMessage): String? =
+        message.records.firstNotNullOfOrNull { record -> record.toUri()?.toString()?.let(KeyUri::parse) }
 
     fun write(tag: Tag, message: NdefMessage): WriteResult {
         val uid = tag.id.toHex()
@@ -74,11 +76,18 @@ object TagWriter {
         }
         it.writeNdefMessage(message)
 
-        // Read back over the same connection to confirm before saving anything.
+        // Read back over the same connection to confirm before saving anything. Check that the key
+        // reads back, rather than every byte: some tags return the message slightly re-encoded,
+        // which made good writes look like failures.
         val readBack = it.ndefMessage
-        if (readBack == null || !readBack.toByteArray().contentEquals(message.toByteArray())) {
-            Log.d(TAG, "read-back mismatch on tag $uid")
+        val expected = keyIn(message)
+        val found = readBack?.let(::keyIn)
+        if (expected == null || found != expected) {
+            Log.d(TAG, "read-back mismatch on tag $uid (key found=${found != null})")
             return WriteResult.Failure(WriteError.VERIFY_FAILED)
+        }
+        if (!readBack.toByteArray().contentEquals(message.toByteArray())) {
+            Log.d(TAG, "tag $uid re-encoded the message (${readBack.byteArrayLength} vs ${message.byteArrayLength} bytes); key matches")
         }
         Log.d(TAG, "wrote and verified tag $uid (${message.byteArrayLength}/${it.maxSize} bytes)")
         WriteResult.Success(uid)

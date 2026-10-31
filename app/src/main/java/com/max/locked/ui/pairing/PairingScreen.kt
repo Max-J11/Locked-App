@@ -15,10 +15,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import com.max.locked.ui.common.Group
+import com.max.locked.ui.common.GroupDivider
+import com.max.locked.ui.common.GroupRow
 import com.max.locked.ui.common.LockedScaffold
+import com.max.locked.ui.common.MainButton
+import com.max.locked.ui.common.NoteBox
+import com.max.locked.ui.common.SectionLabel
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -70,8 +82,14 @@ fun PairingScreen(
     }
 
     LockedScaffold(title = stringResource(R.string.pairing_title), onBack = onDone) { padding ->
+        // Centred, but scrolls when the mode list makes it taller than the screen.
+        BoxWithConstraints(Modifier.padding(padding).fillMaxSize()) {
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .fillMaxWidth()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -86,6 +104,7 @@ fun PairingScreen(
                 }
                 else -> StepContent(state, viewModel, onDone)
             }
+        }
         }
     }
 }
@@ -103,8 +122,27 @@ private fun StepContent(state: PairingUiState, viewModel: PairingViewModel, onDo
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = viewModel::startWaiting) { Text(stringResource(R.string.pairing_next)) }
+            val choices by viewModel.modeChoices.collectAsStateWithLifecycle()
+            val chosen = viewModel.chosenMode(choices, state.pickedModeId)
+            // One free mode and nothing in use: nothing to choose, so the picker stays out of the way.
+            if (choices.size > 1 || choices.any { it.inUse }) {
+                Spacer(Modifier.height(24.dp))
+                ModePicker(choices, chosen, onPick = viewModel::pickMode)
+            }
+            if (state.modeTaken) {
+                Spacer(Modifier.height(12.dp))
+                NoteBox(stringResource(R.string.pairing_mode_taken))
+            }
+            if (choices.isNotEmpty() && chosen == null) {
+                Spacer(Modifier.height(12.dp))
+                NoteBox(stringResource(R.string.pairing_all_modes_in_use))
+            }
+            Spacer(Modifier.height(24.dp))
+            MainButton(
+                text = stringResource(R.string.pairing_next),
+                onClick = viewModel::startWaiting,
+                enabled = chosen != null,
+            )
         }
         PairingStep.Waiting -> {
             CircularProgressIndicator()
@@ -124,11 +162,24 @@ private fun StepContent(state: PairingUiState, viewModel: PairingViewModel, onDo
         is PairingStep.FoundExisting -> {
             Message(stringResource(R.string.pairing_found_existing))
             Spacer(Modifier.height(24.dp))
-            Button(onClick = viewModel::useExisting) { Text(stringResource(R.string.pairing_use_existing)) }
-            Note(stringResource(R.string.pairing_use_existing_note))
+            Group {
+                GroupRow(
+                    title = stringResource(R.string.pairing_use_existing),
+                    subtitle = stringResource(R.string.pairing_use_existing_note),
+                    onClick = viewModel::useExisting,
+                )
+                GroupDivider()
+                GroupRow(
+                    title = stringResource(R.string.pairing_write_new),
+                    subtitle = stringResource(R.string.pairing_write_new_note),
+                    onClick = viewModel::writeNewKey,
+                )
+            }
+        }
+        is PairingStep.AlreadyPaired -> {
+            Message(stringResource(R.string.pairing_already_paired, step.name))
             Spacer(Modifier.height(16.dp))
-            OutlinedButton(onClick = viewModel::writeNewKey) { Text(stringResource(R.string.pairing_write_new)) }
-            Note(stringResource(R.string.pairing_write_new_note))
+            Button(onClick = onDone) { Text(stringResource(R.string.pairing_finish)) }
         }
         is PairingStep.Done -> {
             Message(stringResource(R.string.pairing_done, step.name))
@@ -138,7 +189,7 @@ private fun StepContent(state: PairingUiState, viewModel: PairingViewModel, onDo
         is PairingStep.Failed -> {
             Message(stringResource(errorText(step.error)))
             Spacer(Modifier.height(16.dp))
-            Button(onClick = viewModel::startWaiting) { Text(stringResource(R.string.pairing_try_again)) }
+            Button(onClick = viewModel::tryAgain) { Text(stringResource(R.string.pairing_try_again)) }
         }
     }
 }
@@ -148,15 +199,29 @@ private fun Message(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
 }
 
+/** Which mode the puck locks. Modes in use right now are greyed out, with the reason under them. */
 @Composable
-private fun Note(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(top = 4.dp),
-    )
+private fun ModePicker(choices: List<ModeChoice>, chosen: Long?, onPick: (Long) -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        SectionLabel(stringResource(R.string.pairing_mode_label))
+        Group {
+            choices.forEachIndexed { i, mode ->
+                if (i > 0) GroupDivider()
+                GroupRow(
+                    title = mode.name,
+                    titleStyle = MaterialTheme.typography.bodyLarge,
+                    subtitle = if (mode.inUse) stringResource(R.string.pairing_mode_in_use) else null,
+                    modifier = Modifier.selectable(
+                        selected = mode.id == chosen,
+                        enabled = !mode.inUse,
+                        role = Role.RadioButton,
+                        onClick = { onPick(mode.id) },
+                    ),
+                    leading = { RadioButton(selected = mode.id == chosen, onClick = null, enabled = !mode.inUse) },
+                )
+            }
+        }
+    }
 }
 
 private fun errorText(error: WriteError): Int = when (error) {

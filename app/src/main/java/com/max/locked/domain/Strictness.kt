@@ -32,6 +32,14 @@ fun canDeleteMode(policy: Policy, modeId: Long, now: Long): Boolean =
 /** Pucks can't be removed or moved to another mode while locked: a moved puck could end the lock. */
 fun canChangePucks(policy: Policy, now: Long): Boolean = !policy.isActive(now)
 
+/**
+ * Pairing is allowed while locked, but a newly paired puck can't be set to a mode in use: that
+ * would give a fresh way to end the lock. Re-pairing a puck already on that mode changes nothing,
+ * so it's allowed. [currentModeId] is the puck's mode if this tag was already paired here.
+ */
+fun canGivePuckMode(policy: Policy, modeId: Long, currentModeId: Long?, now: Long): Boolean =
+    !isModeInUse(policy, modeId, now) || currentModeId == modeId
+
 /** Strict mode can always be turned on, but only turned off while nothing is locked. */
 fun canTurnOffStrictMode(policy: Policy, now: Long): Boolean = !policy.isActive(now)
 

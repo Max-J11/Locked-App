@@ -222,11 +222,16 @@
     </plurals>
 
     <!-- Pairing a puck that already has a key -->
-    <string name="pairing_found_existing">This puck is already set up, maybe on another phone.</string>
-    <string name="pairing_use_existing">Use it as it is</string>
-    <string name="pairing_use_existing_note">It keeps working on any other phone it\'s paired with.</string>
-    <string name="pairing_write_new">Write a new key</string>
-    <string name="pairing_write_new_note">It will stop working on other phones until they pair it again.</string>
+    <string name="pairing_found_existing">This puck is already set up with Locked, probably on another phone. How do you want to use it?</string>
+    <string name="pairing_use_existing">Share it with the other phone</string>
+    <string name="pairing_use_existing_note">It will lock and unlock both phones. Nothing on the puck changes.</string>
+    <string name="pairing_write_new">Use it only on this phone</string>
+    <string name="pairing_write_new_note">The puck gets set up fresh. Any other phone it worked with stops recognizing it until it\'s paired there again.</string>
+    <string name="pairing_already_paired">%1$s is already paired with this phone. Nothing else to do.</string>
+    <string name="pairing_mode_label">Mode this puck locks</string>
+    <string name="pairing_mode_in_use">In use right now. You can pick it once you\'re unlocked.</string>
+    <string name="pairing_mode_taken">That mode just started being used. Pick another, then hold the puck to the phone again.</string>
+    <string name="pairing_all_modes_in_use">Every mode is in use right now. You can pair a new puck once you\'re unlocked.</string>
 
     <!-- Stats -->
     <string name="stats_title">Stats</string>

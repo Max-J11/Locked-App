@@ -11,9 +11,11 @@ import com.max.locked.domain.ScheduleRule
 import com.max.locked.domain.activePolicy
 import android.content.Context
 import com.max.locked.domain.DEFAULT_PASSES_PER_LOCK
+import com.max.locked.nfc.TagSecret
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.max.locked.domain.PASS_MILLIS
 import com.max.locked.domain.canChangePucks
+import com.max.locked.domain.canGivePuckMode
 import com.max.locked.domain.canChangeSchedule
 import com.max.locked.domain.canDeleteMode
 import com.max.locked.domain.canRemoveApp
@@ -473,19 +475,33 @@ class BrickRepository @Inject constructor(
 
     suspend fun findKeyByUid(tagUid: String): PairedKeyEntity? = pairedKeyDao.findByUid(tagUid)
 
-    /** Saves a newly paired puck. Re-pairing a known tag replaces its secret and name. */
-    suspend fun savePairedKey(name: String, tagUid: String, secretHash: String) {
+    /** The puck paired on this phone with this tag and key, if any. */
+    suspend fun pairedPuck(tagUid: String, secretHash: String): PairedKeyEntity? =
+        pairedKeyDao.findByUid(tagUid)?.takeIf { TagSecret.hashesMatch(it.secretHash, secretHash) }
+
+    /**
+     * Saves a newly paired puck on [modeId]. Re-pairing a known tag replaces its secret, name and
+     * mode. While locked, a mode in use is refused (it would be a new way to end the lock).
+     * Returns false if refused.
+     */
+    suspend fun savePairedKey(name: String, tagUid: String, secretHash: String, modeId: Long): Boolean {
         val existing = pairedKeyDao.findByUid(tagUid)
-        val key = existing?.copy(name = name, secretHash = secretHash)
+        val (p, now) = storedPolicy()
+        if (!canGivePuckMode(p, modeId, existing?.modeId, now)) {
+            Log.d(TAG, "refused to pair puck on mode $modeId while it's in use")
+            return false
+        }
+        val key = existing?.copy(name = name, secretHash = secretHash, modeId = modeId)
             ?: PairedKeyEntity(
                 name = name,
                 tagUid = tagUid,
                 secretHash = secretHash,
-                modeId = DEFAULT_MODE_ID,
+                modeId = modeId,
                 createdAt = System.currentTimeMillis(),
             )
         pairedKeyDao.upsert(key)
-        Log.d(TAG, if (existing != null) "re-paired puck ${existing.id}" else "paired new puck")
+        Log.d(TAG, if (existing != null) "re-paired puck ${existing.id} on mode $modeId" else "paired new puck on mode $modeId")
+        return true
     }
 
     /** Pucks can't be deleted while locked (settings only get stricter). Returns false if refused. */
