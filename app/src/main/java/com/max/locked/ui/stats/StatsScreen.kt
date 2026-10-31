@@ -14,14 +14,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import com.max.locked.ui.common.LockedScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -35,7 +34,6 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -46,12 +44,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.max.locked.R
-import com.max.locked.domain.hoursAndMinutes
+import com.max.locked.ui.common.formatDuration
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     onBack: () -> Unit,
@@ -60,18 +57,7 @@ fun StatsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmClear by rememberSaveable { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.stats_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    LockedScaffold(title = stringResource(R.string.stats_title), onBack = onBack) { padding ->
         Column(
             Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -120,7 +106,7 @@ fun StatsScreen(
 private fun WeekCard(state: StatsUiState) {
     // Today is shown until another day is tapped.
     var selected by rememberSaveable { mutableIntStateOf(state.days.lastIndex) }
-    Card(Modifier.fillMaxWidth()) {
+    StatsCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp)) {
             Text(stringResource(R.string.stats_last_7_days), style = MaterialTheme.typography.labelLarge)
             Text(formatDuration(state.weekMillis), style = MaterialTheme.typography.displaySmall)
@@ -202,46 +188,94 @@ private fun WeekChart(days: List<DayBar>, selected: Int, onSelect: (Int) -> Unit
     }
 }
 
+/** The same rounded, light card used across the app. */
+@Composable
+private fun StatsCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) { content() }
+}
+
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(modifier) {
-        Column(Modifier.padding(16.dp)) {
-            Text(label, style = MaterialTheme.typography.labelLarge)
-            Text(value, style = MaterialTheme.typography.titleLarge)
+    StatsCard(modifier) {
+        Column(Modifier.fillMaxWidth().padding(20.dp)) {
+            Text(value, style = MaterialTheme.typography.headlineSmall, maxLines = 1)
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
+/**
+ * How often Locked stepped in this week: the total as one big number, then the top apps and
+ * sites, each with a thin bar showing how it compares to the most-stopped one.
+ */
 @Composable
 private fun StepInsCard(state: StatsUiState) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val colors = MaterialTheme.colorScheme
+    StatsCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(20.dp)) {
             Text(stringResource(R.string.stats_step_ins_title), style = MaterialTheme.typography.titleMedium)
-            Text(
-                pluralStringResource(R.plurals.stats_step_ins, state.weekStepIns, state.weekStepIns),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            state.topStepIns.forEach { item ->
-                Row(Modifier.fillMaxWidth()) {
-                    Text(
-                        item.label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(item.count.toString(), style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-            if (state.weekPasses > 0) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(state.weekStepIns.toString(), style = MaterialTheme.typography.displaySmall)
                 Text(
-                    pluralStringResource(R.plurals.stats_passes, state.weekPasses, state.weekPasses),
+                    pluralStringResource(R.plurals.stats_step_ins_label, state.weekStepIns),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
                 )
             }
+
+            val max = state.topStepIns.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
+            state.topStepIns.forEach { item ->
+                Column(Modifier.padding(top = 16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            item.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            item.count.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(start = 12.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    ShareBar(item.count.toFloat() / max)
+                }
+            }
+
+            HorizontalDivider(Modifier.padding(top = 20.dp, bottom = 12.dp), color = colors.outlineVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.stats_passes_used),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(state.weekPasses.toString(), style = MaterialTheme.typography.titleMedium)
+            }
         }
+    }
+}
+
+/** A thin rounded bar filled to [fraction] of its width. */
+@Composable
+private fun ShareBar(fraction: Float) {
+    val track = MaterialTheme.colorScheme.surfaceVariant
+    val fill = MaterialTheme.colorScheme.primary
+    Canvas(Modifier.fillMaxWidth().height(6.dp)) {
+        val r = CornerRadius(size.height / 2)
+        drawRoundRect(track, cornerRadius = r)
+        drawRoundRect(fill, size = Size(size.width * fraction.coerceIn(0f, 1f), size.height), cornerRadius = r)
     }
 }
 
@@ -252,10 +286,3 @@ private fun dayName(day: LocalDate): String =
     } else {
         day.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
     }
-
-/** "4 h 10 m", or "25 m" under an hour. */
-@Composable
-fun formatDuration(millis: Long): String {
-    val (h, m) = hoursAndMinutes(millis)
-    return if (h > 0) stringResource(R.string.duration_hm, h, m) else stringResource(R.string.duration_m, m)
-}

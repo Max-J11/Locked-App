@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Locked" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Matches the sage background, so opening the app doesn't flash a different colour. -->
+    <style name="Theme.Locked" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/app_background</item>
+    </style>
 
     <!-- Invisible activity for puck taps: no UI, no animation, just a buzz and a toast. -->
     <style name="Theme.Locked.Tap" parent="android:Theme.Translucent.NoTitleBar">

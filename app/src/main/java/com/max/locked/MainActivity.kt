@@ -10,7 +10,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import com.max.locked.domain.nextTagline
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,6 +43,9 @@ class MainActivity : ComponentActivity() {
     /** Starts as "all done" so the checklist doesn't flash before the first real read. */
     private val setupStatus = mutableStateOf(SetupStatus())
 
+    /** Which phrase sits under the greeting; a new one each time the app comes to the front. */
+    private val tagline = mutableIntStateOf(-1)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -52,6 +57,7 @@ class MainActivity : ComponentActivity() {
                         Scaffold(Modifier.fillMaxSize()) { padding ->
                             HomeScreen(
                                 setup = setupStatus.value,
+                                taglineIndex = tagline.intValue,
                                 onOpenSettings = ::openSettings,
                                 onModes = { nav.navigate(ROUTE_MODES) },
                                 onSchedules = { nav.navigate(ROUTE_SCHEDULES) },
@@ -118,6 +124,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val count = resources.getStringArray(R.array.greeting_taglines).size
+        tagline.intValue = nextTagline(count, tagline.intValue)
     }
 
     override fun onResume() {

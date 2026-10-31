@@ -3,6 +3,8 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <color name="app_background">#FFDAE7DB</color>
+
     <!-- Home-screen widget, sage. Dark versions in values-night. -->
     <color name="widget_bg_locked">#FFD5E8D8</color>
     <color name="widget_bg_unlocked">#FFF4F7F2</color>

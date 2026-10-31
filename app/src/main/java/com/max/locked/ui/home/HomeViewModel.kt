@@ -7,6 +7,9 @@ import com.max.locked.data.ModeSummary
 import com.max.locked.data.PairedKeyEntity
 import com.max.locked.domain.canStartCooldown
 import com.max.locked.domain.canUnlockWithPuck
+import com.max.locked.domain.PartOfDay
+import com.max.locked.domain.partOfDay
+import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +22,9 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val isLocked: Boolean = false,
+    /** How long this locked stretch has lasted so far. */
+    val lockedForMillis: Long = 0,
+    val partOfDay: PartOfDay = PartOfDay.MORNING,
     /** Names of the modes in use while locked. */
     val activeModeName: String? = null,
     /** At least part of the lock comes from a schedule. */
@@ -73,6 +79,8 @@ class HomeViewModel @Inject constructor(
             val endsAt = policy.endsAt
             HomeUiState(
                 isLocked = locked,
+                lockedForMillis = if (locked) now - (policy.lockedSince ?: now) else 0,
+                partOfDay = partOfDay(LocalTime.now().hour),
                 activeModeName = if (locked) {
                     modes.filter { it.id in activeIds }.joinToString(", ") { it.name }.ifEmpty { null }
                 } else {

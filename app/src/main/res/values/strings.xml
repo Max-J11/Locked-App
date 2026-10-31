@@ -121,7 +121,7 @@
         <item quantity="other">%d apps</item>
     </plurals>
     <string name="mode_hides_notifications">hides notifications</string>
-    <string name="mode_in_use">in use now</string>
+    <string name="mode_in_use">In use</string>
     <string name="mode_rename">Rename</string>
     <string name="mode_rename_title">Rename this mode</string>
     <string name="mode_delete">Delete</string>
@@ -141,7 +141,7 @@
     <string name="schedules_empty">No schedules yet. A schedule locks a mode at the same time each day you choose.</string>
     <string name="schedules_add">Add a schedule</string>
     <string name="schedules_running_note">A schedule that\'s running can\'t be changed or switched off until it ends.</string>
-    <string name="schedule_running">running now</string>
+    <string name="schedule_running">Running</string>
     <string name="schedule_range">%1$s – %2$s</string>
     <string name="schedule_add_title">New schedule</string>
     <string name="schedule_edit_title">Edit schedule</string>
@@ -166,6 +166,8 @@
 
     <!-- App picker -->
     <string name="app_picker_search">Search apps</string>
+    <string name="app_picker_apps">Apps</string>
+    <string name="schedule_time">Time</string>
     <string name="back">Back</string>
 
 
@@ -233,6 +235,11 @@
         <item quantity="one">%d time in the last 7 days</item>
         <item quantity="other">%d times in the last 7 days</item>
     </plurals>
+    <plurals name="stats_step_ins_label">
+        <item quantity="one">time in the last 7 days</item>
+        <item quantity="other">times in the last 7 days</item>
+    </plurals>
+    <string name="stats_passes_used">Passes used</string>
     <plurals name="stats_passes">
         <item quantity="one">%d pass used</item>
         <item quantity="other">%d passes used</item>
@@ -248,4 +255,26 @@
     <string name="widget_description">Shows whether you\'re locked, and for how long.</string>
     <string name="widget_locked_for">Locked for %s</string>
     <string name="widget_mode_until">%1$s · until %2$s</string>
+
+    <!-- Home -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <!-- One is picked each time the app is opened. -->
+    <string-array name="greeting_taglines">
+        <item>Your time is yours again.</item>
+        <item>Look up. Life\'s happening.</item>
+        <item>Less scrolling, more living.</item>
+        <item>Enjoy the quiet.</item>
+        <item>Be here for this part.</item>
+        <item>Nothing to catch up on.</item>
+        <item>Your attention is worth keeping.</item>
+        <item>Let your mind wander.</item>
+        <item>A little quiet goes a long way.</item>
+        <item>Go do the thing you love.</item>
+        <item>The real world misses you.</item>
+        <item>Plot twist: nothing new happened.</item>
+    </string-array>
+    <string name="home_ring_locked_for">Locked for</string>
+    <string name="home_ring_just_now">Just now</string>
 </resources>

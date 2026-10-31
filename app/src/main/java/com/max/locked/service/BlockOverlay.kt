@@ -128,7 +128,7 @@ class BlockOverlay(private val service: AccessibilityService) {
         }
 
         return FrameLayout(ctx).apply {
-            setBackgroundColor(Color.argb(235, 24, 28, 36))
+            setBackgroundColor(Color.argb(240, 16, 26, 19))
             // Swallow taps so they don't fall through to the launcher.
             isClickable = true
             addView(

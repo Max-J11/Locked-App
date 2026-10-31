@@ -1,34 +1,15 @@
 package com.max.locked.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
+private val Base = Typography()
+
+/** Material defaults, with headings a little heavier for a cleaner, modern look. */
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    displaySmall = Base.displaySmall.copy(fontWeight = FontWeight.Medium),
+    headlineLarge = Base.headlineLarge.copy(fontWeight = FontWeight.Medium),
+    headlineMedium = Base.headlineMedium.copy(fontWeight = FontWeight.Medium),
+    headlineSmall = Base.headlineSmall.copy(fontWeight = FontWeight.Medium),
+    titleLarge = Base.titleLarge.copy(fontWeight = FontWeight.Medium),
 )

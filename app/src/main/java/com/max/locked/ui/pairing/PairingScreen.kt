@@ -14,15 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import com.max.locked.ui.common.LockedScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,7 +38,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.max.locked.R
 import com.max.locked.nfc.WriteError
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PairingScreen(
     onDone: () -> Unit,
@@ -75,18 +69,7 @@ fun PairingScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.pairing_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onDone) {
-                        Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    LockedScaffold(title = stringResource(R.string.pairing_title), onBack = onDone) { padding ->
         Column(
             modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
