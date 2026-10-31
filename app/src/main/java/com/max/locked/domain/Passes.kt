@@ -5,8 +5,15 @@ import com.max.locked.data.Policy
 /** How long a pass opens an app for. */
 const val PASS_MILLIS = 5 * 60 * 1000L
 
-/** Passes per lock. They come back when a new lock starts. */
-const val PASSES_PER_LOCK = 3
+/** Passes per lock until she picks her own number in Settings. They come back when a new lock starts. */
+const val DEFAULT_PASSES_PER_LOCK = 3
+
+/** The most passes per lock Settings offers. */
+const val MAX_PASSES_PER_LOCK = 5
+
+/** Passes per lock can be set to anything in range while unlocked, but only lowered while locked. */
+fun canSetPassCap(policy: Policy, now: Long, current: Int, new: Int): Boolean =
+    new in 0..MAX_PASSES_PER_LOCK && (new <= current || !policy.isActive(now))
 
 /** A pass can be used for an app that's blocked right now, while any are left. */
 fun canUsePass(policy: Policy, packageName: String, now: Long): Boolean =

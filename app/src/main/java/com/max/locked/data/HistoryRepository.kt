@@ -3,7 +3,6 @@ package com.max.locked.data
 import android.os.SystemClock
 import android.util.Log
 import com.max.locked.di.ApplicationScope
-import com.max.locked.domain.PASSES_PER_LOCK
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -53,7 +52,7 @@ class HistoryRepository @Inject constructor(
 
         val since = p.lockedSince ?: now
         val expectedEnd = listOfNotNull(p.endsAt, p.cooldownEndsAt).minOrNull()
-        val passesUsed = PASSES_PER_LOCK - p.passesLeft
+        val passesUsed = p.passesUsed
         val current = if (open != null && open.expectedEnd != null && open.expectedEnd <= since) {
             // The app wasn't running when that one ended, and another lock has started since.
             close(open, now)

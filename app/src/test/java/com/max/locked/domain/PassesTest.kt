@@ -38,7 +38,7 @@ class PassesTest {
     @Test
     fun `a new lock has all its passes`() {
         val p = policy(state(passSessionStart = null))
-        assertEquals(PASSES_PER_LOCK, p.passesLeft)
+        assertEquals(DEFAULT_PASSES_PER_LOCK, p.passesLeft)
         assertTrue(canUsePass(p, youtube, now))
     }
 
@@ -57,7 +57,7 @@ class PassesTest {
 
     @Test
     fun `no pass once they're used up`() {
-        val p = policy(state(passesUsed = PASSES_PER_LOCK))
+        val p = policy(state(passesUsed = DEFAULT_PASSES_PER_LOCK))
         assertEquals(0, p.passesLeft)
         assertFalse(canUsePass(p, youtube, now))
     }
@@ -70,8 +70,8 @@ class PassesTest {
     @Test
     fun `passes come back with a new lock`() {
         // Count belongs to an earlier lock; this lock started later.
-        val p = policy(state(passesUsed = PASSES_PER_LOCK, passSessionStart = lockStart - 3_600_000))
-        assertEquals(PASSES_PER_LOCK, p.passesLeft)
+        val p = policy(state(passesUsed = DEFAULT_PASSES_PER_LOCK, passSessionStart = lockStart - 3_600_000))
+        assertEquals(DEFAULT_PASSES_PER_LOCK, p.passesLeft)
     }
 
     @Test
@@ -106,5 +106,47 @@ class PassesTest {
         val p = policy(state().copy(isLocked = false))
         assertEquals(0, p.passesLeft)
         assertFalse(canUsePass(p, youtube, now))
+    }
+
+    private fun policyWithCap(s: LockState, cap: Int) =
+        activePolicy(now, s, setOf(youtube, instagram), emptySet(), passCap = cap)
+
+    @Test
+    fun `her chosen number of passes is used`() {
+        val p = policyWithCap(state(passesUsed = 1), cap = 5)
+        assertEquals(5, p.passCap)
+        assertEquals(1, p.passesUsed)
+        assertEquals(4, p.passesLeft)
+    }
+
+    @Test
+    fun `zero passes means none can be used`() {
+        val p = policyWithCap(state(passSessionStart = null), cap = 0)
+        assertEquals(0, p.passesLeft)
+        assertFalse(canUsePass(p, youtube, now))
+    }
+
+    @Test
+    fun `lowering below what was already used leaves none, never negative`() {
+        val p = policyWithCap(state(passesUsed = 3), cap = 1)
+        assertEquals(0, p.passesLeft)
+        assertEquals(3, p.passesUsed)
+    }
+
+    @Test
+    fun `passes per lock can only go down while locked`() {
+        val locked = policy(state())
+        assertTrue(canSetPassCap(locked, now, current = 3, new = 1))
+        assertTrue(canSetPassCap(locked, now, current = 3, new = 3))
+        assertFalse(canSetPassCap(locked, now, current = 3, new = 4))
+    }
+
+    @Test
+    fun `passes per lock can be anything from 0 to 5 while unlocked`() {
+        val unlocked = policy(state().copy(isLocked = false))
+        assertTrue(canSetPassCap(unlocked, now, current = 1, new = 5))
+        assertTrue(canSetPassCap(unlocked, now, current = 3, new = 0))
+        assertFalse(canSetPassCap(unlocked, now, current = 3, new = 6))
+        assertFalse(canSetPassCap(unlocked, now, current = 3, new = -1))
     }
 }

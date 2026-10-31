@@ -31,6 +31,8 @@ data class HomeUiState(
     val fromSchedule: Boolean = false,
     val scheduleCount: Int = 0,
     val passesLeft: Int = 0,
+    /** Passes this lock allows in all. */
+    val passCap: Int = 0,
     /** A pass is open until this time. */
     val passEndsAt: Long? = null,
     /** A timed lock ends at this time. */
@@ -89,6 +91,7 @@ class HomeViewModel @Inject constructor(
                 fromSchedule = locked && policy.schedules.isNotEmpty(),
                 scheduleCount = schedules.size,
                 passesLeft = if (locked) policy.passesLeft else 0,
+                passCap = if (locked) policy.passCap else 0,
                 passEndsAt = if (locked) policy.passEndsAt?.takeIf { it > now } else null,
                 endsAt = if (locked) endsAt else null,
                 // Only worth showing if it beats the timer.

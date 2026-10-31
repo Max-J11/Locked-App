@@ -40,6 +40,10 @@ data class Policy(
     val passPackage: String? = null,
     val passEndsAt: Long? = null,
     val passesLeft: Int = 0,
+    /** Passes used in this locked stretch. */
+    val passesUsed: Int = 0,
+    /** Passes this lock allows in all (her Settings choice). */
+    val passCap: Int = 0,
     /** When the current locked stretch began. Passes are counted per stretch. */
     val lockedSince: Long? = null,
 ) {

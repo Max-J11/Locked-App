@@ -9,7 +9,9 @@ import com.max.locked.domain.ModeRule
 import com.max.locked.domain.SOURCE_TIMER
 import com.max.locked.domain.ScheduleRule
 import com.max.locked.domain.activePolicy
-import com.max.locked.domain.PASSES_PER_LOCK
+import android.content.Context
+import com.max.locked.domain.DEFAULT_PASSES_PER_LOCK
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.max.locked.domain.PASS_MILLIS
 import com.max.locked.domain.canChangePucks
 import com.max.locked.domain.canChangeSchedule
@@ -56,6 +58,7 @@ import javax.inject.Singleton
 class BrickRepository @Inject constructor(
     private val db: LockedDatabase,
     private val neverBlockList: NeverBlockList,
+    @ApplicationContext private val context: Context,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
     private val modeDao = db.modeDao()
@@ -85,6 +88,7 @@ class BrickRepository @Inject constructor(
         val schedules: List<ScheduleRule>,
         val modes: Map<Long, ModeRule>,
         val neverBlock: Set<String>,
+        val passCap: Int = DEFAULT_PASSES_PER_LOCK,
     )
 
     private val inputs: StateFlow<PolicyInputs?> =
@@ -95,6 +99,9 @@ class BrickRepository @Inject constructor(
             modeAppDao.observeAll(),
             modeSiteDao.observeAll(),
         ) { state, schedules, modes, apps, sites -> buildInputs(state, schedules, modes, apps, sites) }
+            .combine(context.settingsStore.data.map { it.passCap() }.distinctUntilChanged()) { i, cap ->
+                i.copy(passCap = cap)
+            }
             .stateIn(scope, SharingStarted.Eagerly, null)
 
     private fun buildInputs(
@@ -121,7 +128,7 @@ class BrickRepository @Inject constructor(
     }
 
     private fun compute(i: PolicyInputs, now: Long): Policy =
-        activePolicy(now, ZoneId.systemDefault(), i.state, i.schedules, i.modes, i.neverBlock)
+        activePolicy(now, ZoneId.systemDefault(), i.state, i.schedules, i.modes, i.neverBlock, i.passCap)
 
     /**
      * The policy right now, computed from in-memory inputs and the clock. Enforcers use this on
@@ -138,7 +145,8 @@ class BrickRepository @Inject constructor(
     /** Reads stored state directly. For taps that may cold-start the process before [inputs] loads. */
     private suspend fun policyFromDb(now: Long): Policy =
         compute(
-            buildInputs(stateDao.get(), scheduleDao.getAll(), modeDao.getAll(), modeAppDao.getAll(), modeSiteDao.getAll()),
+            buildInputs(stateDao.get(), scheduleDao.getAll(), modeDao.getAll(), modeAppDao.getAll(), modeSiteDao.getAll())
+                .copy(passCap = context.settingsStore.data.first().passCap()),
             now,
         )
 
@@ -365,7 +373,7 @@ class BrickRepository @Inject constructor(
 
     /**
      * Opens [packageName] for [PASS_MILLIS] without ending the lock. Uses one of the
-     * [PASSES_PER_LOCK] passes for this locked stretch. Using a pass for another app replaces the
+     * passes for this locked stretch (how many is her Settings choice). Using a pass for another app replaces the
      * running one. Returns false if refused (not blocked, or none left).
      */
     suspend fun usePass(packageName: String): Boolean = stateMutex.withLock {
@@ -399,12 +407,11 @@ class BrickRepository @Inject constructor(
     /** Puts [target] in the pass slot, replacing any running pass, and counts one pass used. */
     private suspend fun savePass(p: Policy, target: String, now: Long) {
         val current = stateDao.get() ?: BrickStateEntity()
-        val usedBefore = PASSES_PER_LOCK - p.passesLeft
         stateDao.upsert(
             current.copy(
                 passPackage = target,
                 passEndsAt = now + PASS_MILLIS,
-                passesUsed = usedBefore + 1,
+                passesUsed = p.passesUsed + 1,
                 passSessionStart = p.lockedSince,
             ),
         )

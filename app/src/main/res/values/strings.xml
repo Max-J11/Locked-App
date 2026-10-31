@@ -51,10 +51,11 @@
     <string name="lock_for_until">Until a time…</string>
     <string name="lock_for_mode">Mode</string>
     <string name="lock_for_confirm">Lock</string>
-    <string name="duration_minutes">%d minutes</string>
-    <plurals name="duration_hours">
-        <item quantity="one">%d hour</item>
-        <item quantity="other">%d hours</item>
+    <string name="lock_for_how_long">How long</string>
+    <string name="lock_for_unit_min">min</string>
+    <plurals name="lock_for_unit_hours">
+        <item quantity="one">hour</item>
+        <item quantity="other">hours</item>
     </plurals>
 
     <!-- Unlock without puck -->
@@ -194,6 +195,15 @@
     <string name="strict_mode">Strict mode</string>
     <string name="strict_mode_summary">While locked, Locked\'s App info page, the Accessibility apps list and its uninstall prompt close when opened, so the blocker is harder to switch off mid-lock.</string>
     <string name="strict_mode_locked_note">Strict mode can be turned off once you\'re unlocked.</string>
+    <string name="passes_per_lock">Passes per lock</string>
+    <plurals name="passes_per_lock_summary">
+        <item quantity="one">%1$d pass, %2$d minutes</item>
+        <item quantity="other">%1$d passes, %2$d minutes each</item>
+    </plurals>
+    <string name="passes_per_lock_none">No passes. Blocked apps stay closed until you unlock.</string>
+    <string name="passes_per_lock_title">Passes per lock</string>
+    <string name="passes_per_lock_body">A pass opens a blocked app or website for %1$d minutes without ending the lock. They come back each time a new lock starts.</string>
+    <string name="passes_per_lock_locked_note">While locked, this can only go down. It can go back up once you\'re unlocked.</string>
     <string name="overlay_settings_message">Locked\'s settings are closed while locked.</string>
 
     <!-- Websites -->

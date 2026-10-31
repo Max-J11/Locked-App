@@ -37,6 +37,8 @@ fun activePolicy(
     schedules: List<ScheduleRule>,
     modes: Map<Long, ModeRule>,
     neverBlock: Set<String>,
+    /** Passes per lock, from Settings. */
+    passCap: Int = DEFAULT_PASSES_PER_LOCK,
 ): Policy {
     val cooldown = state?.cooldownEndsAt
     val cooldownDone = cooldown != null && now >= cooldown
@@ -61,6 +63,7 @@ fun activePolicy(
         (listOfNotNull(manual?.let { it.startedAt ?: now }) + activeSchedules.map { it.startedAt }).min()
     val sameStretch = lockedSince != null && state?.passSessionStart == lockedSince
     val passEndsAt = state?.passEndsAt?.takeIf { sameStretch && state.passPackage != null && it > now }
+    val passesUsed = if (sameStretch) state!!.passesUsed else 0
 
     val nextChange = (
         listOfNotNull(manual?.endsAt, cooldown, passEndsAt) + enabled.flatMap { it.boundariesAfter(now, zone) }
@@ -84,7 +87,9 @@ fun activePolicy(
         nextChange = nextChange,
         passPackage = state?.passPackage?.takeIf { passEndsAt != null },
         passEndsAt = passEndsAt,
-        passesLeft = (PASSES_PER_LOCK - if (sameStretch) state!!.passesUsed else 0).coerceAtLeast(0),
+        passesLeft = (passCap - passesUsed).coerceAtLeast(0),
+        passesUsed = passesUsed,
+        passCap = passCap,
         lockedSince = lockedSince,
     )
 }
@@ -96,7 +101,9 @@ fun activePolicy(
     modeApps: Set<String>,
     neverBlock: Set<String>,
     modeBlocksNotifications: Boolean = false,
+    passCap: Int = DEFAULT_PASSES_PER_LOCK,
 ): Policy = activePolicy(
+    passCap = passCap,
     now = now,
     zone = ZoneOffset.UTC,
     state = state,

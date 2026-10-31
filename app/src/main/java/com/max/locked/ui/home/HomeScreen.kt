@@ -37,7 +37,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.max.locked.R
 import com.max.locked.domain.COOLDOWN_MILLIS
-import com.max.locked.domain.PASSES_PER_LOCK
 import com.max.locked.domain.PartOfDay
 import com.max.locked.service.SetupStatus
 import com.max.locked.ui.common.formatDuration
@@ -207,10 +206,11 @@ private fun Status(
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        if (state.isLocked) {
+        // With passes set to 0 there's nothing to count, so the line is left out.
+        if (state.isLocked && (state.passEndsAt != null || state.passCap > 0)) {
             Text(
                 text = state.passEndsAt?.let { stringResource(R.string.home_pass_open, formatWhen(it)) }
-                    ?: pluralStringResource(R.plurals.home_passes_left, state.passesLeft, state.passesLeft, PASSES_PER_LOCK),
+                    ?: pluralStringResource(R.plurals.home_passes_left, state.passesLeft, state.passesLeft, state.passCap),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,

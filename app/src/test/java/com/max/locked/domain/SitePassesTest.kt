@@ -50,7 +50,7 @@ class SitePassesTest {
 
     @Test
     fun `site passes share the lock's passes with apps`() {
-        val p = policy(state(passesUsed = PASSES_PER_LOCK))
+        val p = policy(state(passesUsed = DEFAULT_PASSES_PER_LOCK))
         assertFalse(canUseSitePass(p, "youtube.com", now))
         assertTrue(canUseSitePass(policy(state(passesUsed = 2)), "youtube.com", now))
     }
