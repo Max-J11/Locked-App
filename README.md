@@ -159,8 +159,11 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 Debug builds include an ADB broadcast receiver that force-unlocks, so testing never locks the
 developer out. Release builds don't have it.
 
-Release builds are signed with a key kept outside the repo. See [docs/HANDOFF.md](docs/HANDOFF.md)
-for building, installing on another phone, setting it up, and updating it later.
+Release builds are signed with a key kept outside the repo. To build your own release APK, set
+`LOCKED_STORE_FILE`, `LOCKED_STORE_PASSWORD`, `LOCKED_KEY_ALIAS` and `LOCKED_KEY_PASSWORD` in
+`~/.gradle/gradle.properties`, then run `.\gradlew assembleRelease`. Without them the release build is
+left unsigned. An APK you sign yourself uses a different key from mine, so it can't be installed over
+one of my builds (uninstall first, which erases the app's setup).
 
 ## Project layout
 
@@ -175,6 +178,10 @@ com.max.locked
 ├── di/         Hilt module
 └── ui/         One package per screen, plus theme and shared components
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE). The software is provided as is, with no warranty.
 
 ## Notes
 
