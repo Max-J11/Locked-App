@@ -66,7 +66,7 @@ data class PairedKeyEntity(
     val createdAt: Long,
 )
 
-/** Single row (id = 0) holding the current lock. All columns from CLAUDE.md, some unused until later. */
+/** Single row (id = 0) holding the current lock. Some columns are unused until later features need them. */
 @Entity(tableName = "brick_state")
 data class BrickStateEntity(
     @PrimaryKey val id: Int = SINGLE_ROW_ID,
