@@ -85,13 +85,16 @@ Locked is friction, not a jail, and you can always get out.
   so nothing can leave you stuck if the phone was off or restarted.
 - **Emergencies.** Phone, contacts, messages, maps, the clock, Settings, the keyboard and emergency
   info are never blocked, in any mode.
-- **Lost the puck?** Restart the phone in safe mode (hold the power button, then press and hold
-  *Power off*, then tap *Safe mode*). Third-party apps don't run there, so you can uninstall Locked
-  from Settings › Apps. Uninstalling erases your modes, pucks and history.
+- **Lost the puck? Use "Unlock without puck."** It's a button on the home screen. Everything locked
+  ends 15 minutes after you press it, even if every puck is gone. It isn't shown when the lock would
+  end sooner on its own.
+- **Last resort: safe mode.** Restart the phone in safe mode (hold the power button, then press and
+  hold *Power off*, then tap *Safe mode*). Third-party apps don't run there, so you can uninstall
+  Locked from Settings › Apps. Uninstalling erases your modes, pucks and history.
 - **Strict mode** makes Locked's App info page and uninstall prompt harder to reach while a lock is
-  on. Safe mode and a factory reset still work.
+  on. "Unlock without puck", safe mode and a factory reset still work.
 
-Release builds have no ADB unlock, so keep a puck somewhere you can reach.
+Release builds have no ADB unlock.
 
 ## Privacy
 
