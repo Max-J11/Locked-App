@@ -45,16 +45,25 @@ with `adb install -r app-release.apk`, or open the file on the phone.
 
 You need an NFC phone running **Android 16 or newer**. Older versions aren't supported.
 
-Android treats accessibility services in apps installed outside the Play Store as "restricted", so
-the first time you'll see the switch greyed out:
+Installing a file from outside the Play Store needs a couple of permissions:
+
+- **Opening the file on the phone** asks you to allow installs from the app you opened it with (your
+  browser or file manager). Allow it for that app, then go back and install.
+- **Samsung phones with Auto Blocker on** refuse to install apps from outside the Play Store, and
+  block USB debugging. Turn Auto Blocker off (Settings › Security and privacy › Auto Blocker) while
+  you install, and back on afterwards. Locked keeps working with it on.
+
+Android also treats accessibility services in apps installed outside the Play Store as "restricted",
+so you may find Locked's switch greyed out. If so:
 
 1. Open **Settings › Apps › Locked**.
 2. Tap **⋮** (top right) › **Allow restricted settings**.
 3. Go back and turn on Locked under **Settings › Accessibility › Installed apps**.
 
 Play Protect may also say the app is unrecognised. That's expected for a hobby app that isn't in
-the Play Store. The setup checklist inside Locked walks through the rest (accessibility,
-notification access, notification reminders).
+the Play Store. After the first launch, the **Finish setting up** card on the home screen lists what's
+left: the blocker (accessibility), notification access, notifications (so Locked can tell you if the
+blocker turns off), battery set to Unrestricted (so One UI doesn't put Locked to sleep), and NFC.
 
 ### Checking your download
 
