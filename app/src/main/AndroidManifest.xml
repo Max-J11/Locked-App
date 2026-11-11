@@ -70,6 +70,7 @@
             android:excludeFromRecents="true"
             android:exported="true"
             android:launchMode="singleTask"
+            android:permission="android.permission.DISPATCH_NFC_MESSAGE"
             android:taskAffinity=""
             android:theme="@style/Theme.Locked.Tap">
             <intent-filter>
