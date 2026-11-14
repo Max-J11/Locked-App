@@ -43,7 +43,7 @@ it's never been on the Play Store.
 Locked isn't on the Play Store. Download `app-release.apk` from the Releases page and install it
 with `adb install -r app-release.apk`, or open the file on the phone.
 
-You need an NFC phone running **Android 16 or newer**. Older versions aren't supported.
+You need an NFC phone running **Android 14 or newer**. Older versions aren't supported. Tested on Android 16 and 17 (One UI 8.5 and 9.0); Android 14 installs but is untested.
 
 Installing a file from outside the Play Store needs a couple of permissions:
 
@@ -155,12 +155,12 @@ Enforcers only read the `Policy`. Every state change goes through the repository
 
 Kotlin, Jetpack Compose, Material 3, Navigation Compose, Room, DataStore, Hilt, WorkManager.
 
-Min SDK 36 (Android 16), tested on Samsung One UI 8.5. There's deliberately no compatibility code
-for older Android versions.
+Min SDK 34 (Android 14), tested on Samsung One UI 8.5 and 9.0 (Android 16 and 17). There's deliberately no compatibility code
+for versions older than Android 14.
 
 ## Building
 
-Requires Android Studio and a device running Android 16.
+Requires Android Studio and a device running Android 14 or newer.
 
 ```powershell
 .\gradlew assembleDebug          # debug build
